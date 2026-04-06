@@ -1,0 +1,4 @@
+# Unpinned AI dependencies (D14)
+openai
+langchain
+anthropic

@@ -16,43 +16,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+        run: uv sync --extra dev --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: python -m pytest tests/ -v --timeout=30
-
-      - name: Type check (ubuntu only)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          pip install mypy
-          mypy warden/ --ignore-missing-imports --no-error-summary || true
+        run: uv run pytest tests/ -v --timeout=30
 
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install ruff
+        run: uv sync --python 3.12
 
       - name: Lint
-        run: ruff check warden/
+        run: uvx ruff check warden/
 
   self-scan:
     runs-on: ubuntu-latest
@@ -60,18 +51,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+        run: uv python install 3.12
 
       - name: Install Warden
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
+        run: uv sync --python 3.12
 
       - name: Warden scans itself
-        run: warden scan . --format json
+        run: uv run warden scan . --format json
 
       - name: Upload scan report
         uses: actions/upload-artifact@v4

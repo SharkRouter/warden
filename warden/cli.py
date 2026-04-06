@@ -45,6 +45,13 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     click.echo(BANNER)
     click.echo(f"Warden v{__version__} -- AI Agent Governance Scanner")
     click.echo(f"Scanning: {target}")
+
+    # Count analyzable files
+    from warden.scanner.code_analyzer import _should_skip
+    py_count = sum(1 for f in target.rglob("*.py") if not _should_skip(f))
+    js_count = sum(1 for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
+                   for f in target.rglob(ext) if not _should_skip(f))
+    click.echo(f"  Analyzable: {py_count} Python, {js_count} JS/TS files")
     click.echo("-" * 44)
 
     start = time.monotonic()

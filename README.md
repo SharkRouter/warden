@@ -129,6 +129,14 @@ pytest tests/ -v
 - JSON/HTML report generation
 - **Security tests**: no network imports, no SharkRouter imports, secrets masking, HTML self-contained
 
+## Known Limitations
+
+- **Language coverage:** v1.0 scans Python and JS/TS code patterns. Go/Rust/Java code analysis is planned for v2.0. Infrastructure, secrets, and dependency scanning apply to all languages.
+- **Framework vocabulary:** Scoring is optimized for recognized AI frameworks. Custom frameworks may score lower despite equivalent governance.
+- **Static analysis:** Warden detects governance *patterns*, not enforcement. High score = controls present, not proven correct.
+
+See [SCORING.md](SCORING.md) for full details.
+
 ## Methodology
 
 Full scoring methodology: [SCORING.md](SCORING.md)

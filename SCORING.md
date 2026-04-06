@@ -86,3 +86,15 @@ If you believe your tool is scored incorrectly, open an issue with:
 3. Suggested score adjustment with justification
 
 We commit to reviewing and responding within 5 business days.
+
+## Known Limitations
+
+**Language Coverage:** Warden v1.0 scans Python and JavaScript/TypeScript. Go, Rust, Java, and C# projects will receive lower scores due to limited code analysis coverage. Infrastructure, secrets, and dependency scanning still apply to all languages.
+
+**Framework Assumptions:** Governance signal detection is optimized for LangChain, AutoGen, CrewAI, OpenAI SDK, and similar frameworks. Custom agent frameworks with equivalent controls may score lower due to pattern vocabulary differences.
+
+**Configuration Scope:** Governance implemented in external policy engines (HashiCorp Vault, OPA/Rego, Kubernetes ConfigMaps) is partially invisible to static analysis. Code-based governance is the primary detection vector.
+
+**Static Analysis Limits:** Warden detects governance *patterns*, not governance *enforcement*. A high score indicates presence of governance controls, not proof they are correctly implemented. A low score may indicate missing governance OR missing Warden coverage. Always verify controls independently.
+
+These limitations are tracked for v2.0 improvements including a plugin architecture for additional languages and deeper policy file analysis.

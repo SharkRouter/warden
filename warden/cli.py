@@ -1,0 +1,225 @@
+"""Warden CLI entry point."""
+
+from __future__ import annotations
+
+import time
+from pathlib import Path
+
+import click
+
+from warden import __version__, __scoring_model__
+
+
+BANNER = r"""
+  ____    __              __   ___            __
+ / __/__ / /  ___ _____  / /__/ _ \___  __ __/ /____  ____
+_\ \/ _ \/ _ \/ _ `/ __/_/  '_/ , _/ _ \/ // / __/ -_)/ __/
+/___/_//_/_//_/\_,_/_/ /_/\_\/_/|_|\___/\_,_/\__/\__/_/
+"""
+
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+@click.version_option(__version__)
+def cli(ctx: click.Context) -> None:
+    """Warden -- AI Agent Governance Scanner."""
+    if ctx.invoked_subcommand is None:
+        click.echo(BANNER)
+        click.echo(f"Warden v{__version__} -- AI Agent Governance Scanner")
+        click.echo("Run 'warden scan <path>' to scan a project.")
+        click.echo("Run 'warden methodology' to see the scoring model.")
+        click.echo("Run 'warden leaderboard' to see vendor scores.")
+
+
+@cli.command()
+@click.argument("path", type=click.Path(exists=True), default=".")
+@click.option("--format", "output_format", type=click.Choice(["json", "html", "all"]),
+              default="all", help="Output format (default: all)")
+@click.option("--output-dir", type=click.Path(), default=None,
+              help="Directory for report files (default: current directory)")
+def scan(path: str, output_format: str, output_dir: str | None) -> None:
+    """Scan a project for AI agent governance posture."""
+    target = Path(path).resolve()
+    out_dir = Path(output_dir).resolve() if output_dir else Path.cwd()
+
+    click.echo(BANNER)
+    click.echo(f"Warden v{__version__} -- AI Agent Governance Scanner")
+    click.echo(f"Scanning: {target}")
+    click.echo("-" * 44)
+
+    start = time.monotonic()
+
+    # Import scanners lazily to keep CLI startup fast
+    from warden.scanner.code_analyzer import scan_code
+    from warden.scanner.mcp_scanner import scan_mcp
+    from warden.scanner.infra_analyzer import scan_infra
+    from warden.scanner.secrets_scanner import scan_secrets
+    from warden.scanner.agent_arch_scanner import scan_agent_arch
+    from warden.scanner.dependency_scanner import scan_dependencies
+    from warden.scanner.audit_scanner import scan_audit
+    from warden.scanner.trap_defense_scanner import scan_trap_defense
+    from warden.scanner.competitors import detect_competitors
+    from warden.scoring.engine import apply_scores
+    from warden.models import ScanResult
+
+    result = ScanResult(target_path=str(target))
+
+    # Run all 7 layers + D17 + competitor detection
+    scanners = [
+        ("Layer 1: Code Patterns", scan_code),
+        ("Layer 2: MCP Servers", scan_mcp),
+        ("Layer 3: Infrastructure", scan_infra),
+        ("Layer 4: Secrets", scan_secrets),
+        ("Layer 5: Agent Architecture", scan_agent_arch),
+        ("Layer 6: Supply Chain", scan_dependencies),
+        ("Layer 7: Audit & Compliance", scan_audit),
+    ]
+
+    raw_scores: dict[str, int] = {}
+
+    for label, scanner_fn in scanners:
+        findings, scores = scanner_fn(target)
+        result.findings.extend(findings)
+        for dim_id, score in scores.items():
+            raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
+        count = len(findings)
+        suffix = "finding" if count == 1 else "findings"
+        critical = sum(1 for f in findings if f.severity.value == "CRITICAL")
+        extra = f" ({critical} CRITICAL)" if critical else ""
+        click.echo(f"  {label} {'.' * (28 - len(label))} {count} {suffix}{extra}")
+
+    # D17 trap defense
+    trap_findings, trap_scores, trap_status = scan_trap_defense(target)
+    result.findings.extend(trap_findings)
+    result.trap_defense = trap_status
+    for dim_id, score in trap_scores.items():
+        raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
+
+    # Competitor detection
+    competitors, comp_gtm = detect_competitors(target)
+    result.competitors = competitors
+    result.gtm_signal = comp_gtm
+
+    if competitors:
+        names = ", ".join(c.display_name for c in competitors if c.confidence != "low")
+        if names:
+            click.echo(f"\n  Governance tools detected: {names}")
+    click.echo("  Competitors in registry: 17")
+
+    # Apply scores
+    apply_scores(result, raw_scores)
+
+    elapsed = time.monotonic() - start
+    click.echo("-" * 44)
+    click.echo(f"  GOVERNANCE SCORE: {result.total_score} / 100 -- {result.level.value}")
+
+    # D17 warning when score is 0
+    d17 = result.dimension_scores.get("D17")
+    if d17 and d17.raw == 0:
+        click.echo()
+        click.echo("  WARNING: Your environment is exposed to 6 trap types with")
+        click.echo("    documented 80%+ attack success rates.")
+        click.echo('    (Franklin, Tomasev, Jacobs, Leibo, Osindero.')
+        click.echo('     "AI Agent Traps." Google DeepMind, March 2026)')
+
+    # Generate reports
+    from warden.report.json_writer import write_json_report
+    from warden.report.html_writer import write_html_report
+
+    if output_format in ("json", "all"):
+        json_path = out_dir / "warden_report.json"
+        write_json_report(result, json_path)
+        click.echo(f"\n  Full data: {json_path}")
+
+    if output_format in ("html", "all"):
+        html_path = out_dir / "warden_report.html"
+        write_html_report(result, html_path)
+        click.echo(f"  Report saved: {html_path}")
+
+    click.echo("-" * 44)
+    click.echo(f"  Completed in {elapsed:.1f}s")
+
+
+@cli.command()
+def methodology() -> None:
+    """Print the scoring methodology (17 dimensions, weights, levels)."""
+    from warden.scoring.dimensions import ALL_DIMENSIONS, GROUPS, TOTAL_RAW_MAX
+
+    click.echo(f"Warden Scoring Model v{__scoring_model__}")
+    click.echo(f"Total raw: {TOTAL_RAW_MAX} points across {len(GROUPS)} groups, normalized to /100")
+    click.echo()
+
+    click.echo("Score Levels:")
+    click.echo("  >= 80  GOVERNED     Comprehensive agent governance in place")
+    click.echo("  >= 60  PARTIAL      Significant coverage with material gaps")
+    click.echo("  >= 33  AT_RISK      Some controls exist but major blind spots")
+    click.echo("  <  33  UNGOVERNED   Minimal or no agent governance")
+    click.echo()
+
+    for group_name, dims in GROUPS.items():
+        group_total = sum(d.max_score for d in dims)
+        click.echo(f"{group_name} ({group_total} pts):")
+        for dim in dims:
+            click.echo(f"  {dim.id:4} {dim.name:30} /{dim.max_score:3}  {dim.description}")
+        click.echo()
+
+    click.echo("Principles:")
+    click.echo("  1. Local-only, privacy-first (no data leaves the machine)")
+    click.echo("  2. Conservative scoring (undetected = 0, not unknown)")
+    click.echo("  3. Balanced methodology (fair credit to all tool categories)")
+    click.echo("  4. Transparent and correctable (vendor corrections welcome)")
+    click.echo("  5. Research-backed severity (D17 cites DeepMind attack stats)")
+    click.echo("  6. Compliance-mapped (EU AI Act, OWASP LLM Top 10, MITRE ATLAS)")
+
+
+@cli.command()
+def leaderboard() -> None:
+    """Show the market comparison table (17 vendors x 17 dimensions)."""
+    click.echo(f"Warden Market Leaderboard -- Scoring Model v{__scoring_model__}")
+    click.echo()
+
+    # Market scores from spec Section 6
+    market_data = [
+        ("SharkRouter",      91, "Full gateway"),
+        ("Zenity",           48, "Agent gov."),
+        ("Wiz",              41, "Cloud AI-SPM"),
+        ("Oasis Security",   38, "NHI access"),
+        ("Lasso / Noma",     30, "Agent monitor"),
+        ("Kong",             27, "API gateway"),
+        ("Robust / Cisco",   26, "AI firewall"),
+        ("Rubrik",           26, "Data + agents"),
+        ("Portkey",          24, "LLM gateway"),
+        ("Pangea / CS",      23, "Prompt layer"),
+        ("NeuralTrust",      23, "LLM gateway"),
+        ("Knostic",          22, "Agent monitor"),
+        ("Prompt Security",  21, "Prompt layer"),
+        ("CF / Envoy",       20, "Proxy"),
+        ("mcp-scan / Snyk",  18, "Vuln scanner"),
+        ("Lakera",           13, "Prompt layer"),
+        ("aiFWall",          11, "Prompt FW"),
+    ]
+
+    click.echo(f"  {'#':>3}  {'Vendor':<22} {'Category':<16} {'Score':>5}")
+    click.echo(f"  {'---':>3}  {'-' * 22} {'-' * 16} {'-----':>5}")
+    for i, (name, score, cat) in enumerate(market_data, 1):
+        level = "GOVERNED" if score >= 80 else "PARTIAL" if score >= 60 else "AT_RISK" if score >= 33 else "UNGOVERNED"
+        click.echo(f"  {i:>3}  {name:<22} {cat:<16} {score:>3}/100  {level}")
+
+    click.echo()
+    click.echo("  Market whitespace (avg < 20% across all vendors):")
+    click.echo("    D17 Adversarial Resilience  -- avg 5%,  best: SharkRouter 90%")
+    click.echo("    D15 Post-Exec Verification  -- avg 3%,  best: SharkRouter 100%")
+    click.echo("    D16 Data Flow Governance    -- avg 6%,  best: SharkRouter 90%")
+    click.echo("    D8  Agent Identity          -- avg 10%, best: SharkRouter 100%")
+    click.echo("    D7  Human-in-the-Loop       -- avg 12%, best: SharkRouter 100%")
+    click.echo()
+    click.echo("  Methodology: warden methodology")
+    click.echo("  Full report: warden scan <path>")
+
+
+def main() -> None:
+    cli()
+
+
+if __name__ == "__main__":
+    main()

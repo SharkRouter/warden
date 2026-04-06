@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+*.egg
+.pytest_cache/
+.mypy_cache/
+warden_report.html
+warden_report.json

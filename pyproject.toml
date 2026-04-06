@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "warden-scanner"
+version = "1.0.0"
+description = "AI Agent Governance Scanner — local-only CLI that scores governance posture"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "SharkRouter", email = "security@sharkrouter.ai"},
+]
+keywords = ["ai", "governance", "security", "agent", "scanner", "mcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.0",
+]
+
+[project.scripts]
+warden = "warden.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["warden*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 30

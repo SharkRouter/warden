@@ -9,8 +9,8 @@ Open-source, local-only CLI scanner that evaluates AI agent governance posture. 
 pip install warden-ai
 warden scan /path/to/your-agent-project
 
-# With uv (recommended — zero setup)
-uvx warden-ai scan /path/to/your-agent-project
+# With uv (zero setup, one-shot)
+uvx --from warden-ai warden scan /path/to/your-agent-project
 ```
 
 From zero to governance score in under 60 seconds.

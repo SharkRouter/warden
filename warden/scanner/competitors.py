@@ -306,15 +306,19 @@ def detect_competitors(target: Path) -> tuple[list[CompetitorMatch], str]:
         if not signals:
             continue
 
-        # Confidence based on unique layers
+        # Confidence: layers + signal density
         unique_layers = len(set(layers))
+        total_patterns = len(profile.code_patterns) or 1
+        code_ratio = code_match_count / total_patterns
+
         if unique_layers >= 3:
+            confidence = "high"
+        elif unique_layers >= 2 and code_ratio >= 0.8:
+            # 2+ layers AND nearly all code patterns match = own codebase
             confidence = "high"
         elif unique_layers >= 2:
             confidence = "medium"
         elif code_match_count >= 3:
-            # Strong code signal (3+ distinct patterns) → likely scanning
-            # the tool's own codebase, not just a casual import
             confidence = "medium"
         else:
             confidence = "low"

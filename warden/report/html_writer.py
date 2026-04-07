@@ -16,18 +16,19 @@ from warden.models import ScanResult, ScoreLevel, Severity
 from warden.scoring.dimensions import GROUPS
 
 # --- Matte professional palette ---
+# Desaturated, warm tones — no neon. All pass 4.5:1 WCAG AA on #0f1117.
 SEVERITY_COLORS = {
-    Severity.CRITICAL: "#da3633",
-    Severity.HIGH: "#d29922",
-    Severity.MEDIUM: "#8b949e",
-    Severity.LOW: "#3fb950",
+    Severity.CRITICAL: "#e5534b",
+    Severity.HIGH: "#c69026",
+    Severity.MEDIUM: "#c2a74e",
+    Severity.LOW: "#57ab5a",
 }
 
 LEVEL_COLORS = {
-    ScoreLevel.GOVERNED: "#3fb950",
-    ScoreLevel.PARTIAL: "#d29922",
-    ScoreLevel.AT_RISK: "#da3633",
-    ScoreLevel.UNGOVERNED: "#da3633",
+    ScoreLevel.GOVERNED: "#57ab5a",
+    ScoreLevel.PARTIAL: "#c69026",
+    ScoreLevel.AT_RISK: "#e5534b",
+    ScoreLevel.UNGOVERNED: "#e5534b",
 }
 
 
@@ -72,22 +73,23 @@ def _build_html(result: ScanResult) -> str:
 def _css() -> str:
     return """<style>
 :root {
-  --bg: #0f1117;
-  --surface: #161b22;
-  --surface2: #1c2128;
-  --border: #21262d;
-  --text: #c9d1d9;
-  --muted: #484f58;
-  --critical: #da3633;
-  --high: #d29922;
-  --medium: #8b949e;
-  --low: #3fb950;
-  --accent: #58a6ff;
-  --critical-dim: rgba(218,54,51,.10);
-  --high-dim: rgba(210,153,34,.10);
-  --medium-dim: rgba(139,148,158,.10);
-  --low-dim: rgba(63,185,80,.10);
-  --accent-dim: rgba(88,166,255,.10);
+  --bg: #0d1117;
+  --surface: #151b23;
+  --surface2: #1a2029;
+  --border: #2a3140;
+  --text: #d1d5db;
+  --text-secondary: #9ca3af;
+  --muted: #7a8394;
+  --critical: #e5534b;
+  --high: #c69026;
+  --medium: #c2a74e;
+  --low: #57ab5a;
+  --accent: #6cb6ff;
+  --critical-dim: rgba(229,83,75,.12);
+  --high-dim: rgba(198,144,38,.12);
+  --medium-dim: rgba(194,167,78,.12);
+  --low-dim: rgba(87,171,90,.12);
+  --accent-dim: rgba(108,182,255,.10);
   --mono: 'SF Mono','Cascadia Code','JetBrains Mono','Fira Code',Consolas,monospace;
   --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
 }
@@ -97,14 +99,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 
 /* --- SECTION CARDS --- */
 .sec{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px 32px;margin-top:24px}
-.sec-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+.sec-title{font-size:13px;font-weight:700;color:var(--text-secondary);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
 
 /* --- HEADER --- */
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:32px 0 24px;flex-wrap:wrap;gap:16px}
 .hdr-left{display:flex;align-items:center;gap:14px}
 .hdr-logo{font-family:var(--mono);font-size:18px;font-weight:800;color:var(--accent);letter-spacing:3px}
-.hdr-sub{font-size:13px;color:var(--muted)}
-.hdr-meta{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;margin-top:10px}
+.hdr-sub{font-size:13px;color:var(--text-secondary)}
+.hdr-meta{font-family:var(--mono);font-size:11px;color:var(--text-secondary);line-height:1.8;margin-top:10px}
 .hdr-badge{font-family:var(--mono);font-size:10px;color:var(--low);border:1px solid rgba(63,185,80,.25);padding:6px 12px;border-radius:6px;text-align:right;white-space:nowrap;max-width:280px;line-height:1.6}
 
 /* --- HERO --- */
@@ -123,16 +125,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 .dim-group-label:first-child{margin-top:0}
 .dim-row{display:flex;align-items:center;gap:8px;margin:5px 0}
 .dim-lbl{font-size:12px;width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dim-track{flex:1;height:7px;background:#21262d;border-radius:4px;overflow:hidden;min-width:60px}
+.dim-track{flex:1;height:7px;background:#2a3140;border-radius:4px;overflow:hidden;min-width:60px}
 .dim-fill{height:100%;border-radius:4px}
-.dim-val{font-family:var(--mono);font-size:11px;color:var(--muted);width:50px;text-align:right}
+.dim-val{font-family:var(--mono);font-size:11px;color:var(--text-secondary);width:50px;text-align:right}
 .dim-subtotal{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:right;margin:4px 0 0;padding-top:4px;border-top:1px dashed var(--border)}
 
 /* --- SUMMARY GRID --- */
 .sgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .sgrid-cell{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
 .sgrid-val{font-family:var(--mono);font-size:28px;font-weight:700}
-.sgrid-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.sgrid-lbl{font-size:11px;color:var(--text-secondary);margin-top:4px}
 
 /* --- FINDINGS --- */
 .fg-hdr{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:8px;user-select:none}
@@ -141,13 +143,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 .f-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:6px;cursor:pointer}
 .f-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .f-sev{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap}
-.f-dim{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:3px}
+.f-dim{font-family:var(--mono);font-size:10px;color:var(--text-secondary);background:var(--surface);padding:2px 6px;border-radius:3px}
 .f-msg{font-size:13px;margin:6px 0 2px}
 .f-loc{font-family:var(--mono);font-size:11px;color:var(--accent)}
-.f-detail{font-size:12px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none}
+.f-detail{font-size:12px;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none}
 .f-card.exp .f-detail{display:block}
 .f-rem{color:var(--low)}
-.f-compliance{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px}
+.f-compliance{font-family:var(--mono);font-size:10px;color:var(--text-secondary);margin-top:4px}
 .f-compliance span{background:var(--accent-dim);color:var(--accent);padding:1px 6px;border-radius:3px;margin-right:4px}
 .arrow{transition:transform .2s;display:inline-block}.arrow.open{transform:rotate(90deg)}
 
@@ -159,14 +161,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 .tc-conf{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px}
 .tc-conf-high{background:var(--low-dim);color:var(--low)}
 .tc-conf-medium{background:var(--high-dim);color:var(--high)}
-.tc-signals{font-size:11px;color:var(--muted);margin-top:6px}
+.tc-signals{font-size:11px;color:var(--text-secondary);margin-top:6px}
 .tc-gap{font-size:12px;margin-top:8px;padding:8px 12px;border-radius:6px;background:var(--surface);border:1px solid var(--border)}
-.tc-disclaimer{font-size:10px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-style:italic}
+.tc-disclaimer{font-size:10px;color:var(--text-secondary);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-style:italic}
 
 /* --- REMEDIATION --- */
 .rem-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px 18px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .rem-num{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);flex-shrink:0}
-.rem-text{font-size:13px;flex:1}.rem-text .sub{color:var(--muted);font-size:12px}
+.rem-text{font-size:13px;flex:1}.rem-text .sub{color:var(--text-secondary);font-size:12px}
 .rem-impact{font-family:var(--mono);font-size:12px;color:var(--low);white-space:nowrap}
 .rem-cta{display:block;text-align:center;margin-top:16px;font-size:13px;color:var(--accent);font-family:var(--mono)}
 
@@ -181,10 +183,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 .email-input:focus{outline:none;border-color:var(--accent)}
 .email-btn{width:100%;padding:12px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--mono);letter-spacing:1px;transition:opacity .2s}
 .email-btn:hover{opacity:.85}
-.email-note{font-size:11px;color:var(--muted);text-align:center}
+.email-note{font-size:11px;color:var(--text-secondary);text-align:center}
 
 /* --- FOOTER --- */
-.ftr{text-align:center;padding:32px 0;font-size:12px;color:var(--muted);line-height:2}
+.ftr{text-align:center;padding:32px 0;font-size:12px;color:var(--text-secondary);line-height:2}
 .ftr a{color:var(--accent);text-decoration:none}
 .ftr-cta{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}
 .ftr-cta:hover{opacity:.85}
@@ -259,25 +261,25 @@ def _hero(result: ScanResult) -> str:
     circ = 2 * 3.14159 * r
     offset = circ - (score / 100) * circ
     if score >= 80:
-        g1, g2 = "#3fb950", "#58a6ff"
+        g1, g2 = "#57ab5a", "#6cb6ff"
     elif score >= 50:
-        g1, g2 = "#d29922", "#3fb950"
+        g1, g2 = "#c69026", "#57ab5a"
     elif score >= 25:
-        g1, g2 = "#da3633", "#d29922"
+        g1, g2 = "#e5534b", "#c69026"
     else:
-        g1, g2 = "#da3633", "#da3633"
+        g1, g2 = "#e5534b", "#e5534b"
 
     gauge_svg = f"""<svg width="150" height="150" viewBox="0 0 150 150">
   <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
     <stop offset="0%" stop-color="{g1}"/><stop offset="100%" stop-color="{g2}"/>
   </linearGradient></defs>
-  <circle cx="75" cy="75" r="{r}" fill="none" stroke="#21262d" stroke-width="10"/>
+  <circle cx="75" cy="75" r="{r}" fill="none" stroke="#2a3140" stroke-width="10"/>
   <circle cx="75" cy="75" r="{r}" fill="none" stroke="url(#sg)" stroke-width="10"
     stroke-linecap="round" stroke-dasharray="{circ:.1f}" stroke-dashoffset="{offset:.1f}"
     transform="rotate(-90 75 75)"/>
   <text x="75" y="72" text-anchor="middle" fill="{color}"
     font-family="var(--mono)" font-size="38" font-weight="700">{score}</text>
-  <text x="75" y="92" text-anchor="middle" fill="#484f58"
+  <text x="75" y="92" text-anchor="middle" fill="#7a8394"
     font-family="var(--mono)" font-size="13">/100</text>
 </svg>"""
 
@@ -352,7 +354,7 @@ def _findings_section(result: ScanResult) -> str:
         return """
 <div class="sec">
   <div class="sec-title">Findings</div>
-  <p style="color:var(--muted)">No findings. Your governance posture is clean.</p>
+  <p style="color:var(--text-secondary)">No findings. Your governance posture is clean.</p>
 </div>"""
 
     groups_html = []
@@ -381,7 +383,7 @@ def _findings_section(result: ScanResult) -> str:
                 rest_cards.append(_finding_card(f, color, dim_var))
             rest_html = f"""
   <details style="margin-top:4px">
-    <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:8px">Show {len(rest)} more {sev.value} findings</summary>
+    <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text-secondary);margin-bottom:8px">Show {len(rest)} more {sev.value} findings</summary>
     {''.join(rest_cards)}
   </details>"""
 
@@ -445,13 +447,12 @@ def _governance_stack(result: ScanResult) -> str:
         return """
 <div class="sec">
   <div class="sec-title">Your Governance Stack</div>
-  <p style="color:var(--muted);margin-bottom:12px">No third-party governance tools detected in this project.</p>
+  <p style="color:var(--text-secondary);margin-bottom:12px">No third-party governance tools detected in this project.</p>
   <p style="font-size:13px">Governance tools help enforce policies, detect risks, and provide audit trails for AI agent operations.
     Consider evaluating tools that align with your compliance requirements.</p>
 </div>"""
 
     cards = []
-    project_score = result.total_score
     for c in detected:
         conf_cls = "tc-conf-high" if c.confidence == "high" else "tc-conf-medium"
         signals_str = ", ".join(c.signals[:5]) if c.signals else ""
@@ -459,13 +460,7 @@ def _governance_stack(result: ScanResult) -> str:
         # Gap analysis
         gap_html = ""
         if c.warden_score > 0:
-            if project_score > c.warden_score:
-                gap_html = f'<div class="tc-gap" style="border-color:var(--low)">Your governance posture ({project_score}/100) exceeds {_esc(c.display_name)}\'s estimated capability ({c.warden_score}/100) — strong internal practices detected.</div>'
-            elif project_score < c.warden_score:
-                delta = c.warden_score - project_score
-                gap_html = f'<div class="tc-gap" style="border-color:var(--high)">Configuration gaps may exist — {_esc(c.display_name)} is capable of scoring ~{c.warden_score}/100 with full setup (+{delta} pts potential).</div>'
-            else:
-                gap_html = f'<div class="tc-gap">{_esc(c.display_name)} is well-configured — project score matches expected capability.</div>'
+            gap_html = f'<div class="tc-gap">{_esc(c.display_name)} detected. Estimated score: ~{c.warden_score}/100. Actual scores vary based on configuration, deployment scope, and directory scanned.</div>'
 
         cards.append(f"""<div class="tc">
   <div class="tc-top">
@@ -559,7 +554,7 @@ def _email_form(result: ScanResult) -> str:
   <div class="email-sec">
     <div class="email-left">
       <div style="font-size:18px;font-weight:700;margin-bottom:8px">Get Your Full Remediation Report</div>
-      <div style="font-size:13px;color:var(--muted)">
+      <div style="font-size:13px;color:var(--text-secondary)">
         We'll send detailed, per-file remediation steps for all
         <strong style="color:var(--critical)">{len(result.findings)}</strong> findings
         ({crits} critical).
@@ -602,7 +597,7 @@ def _footer() -> str:
   Warden v{__version__} &middot; Scoring Model v{__scoring_model__} &middot; MIT License<br>
   <a href="https://github.com/SharkRouter/warden">Methodology &amp; Source</a><br>
   This report was generated locally. No data was transmitted.<br>
-  <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Powered by SharkRouter</span><br>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--text-secondary)">Powered by SharkRouter</span><br>
   <a href="https://sharkrouter.ai" class="ftr-cta">Explore SharkRouter &#x2192;</a>
 </div>"""
 
@@ -617,7 +612,7 @@ def _pct_color(pct: int) -> str:
         return "var(--high)"
     if pct > 0:
         return "var(--critical)"
-    return "#484f58"
+    return "var(--muted)"
 
 
 def _esc(text: str) -> str:

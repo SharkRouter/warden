@@ -10,8 +10,7 @@ import os
 import re
 from pathlib import Path
 
-from warden.models import Finding, Severity, ComplianceMapping, TrapDefenseStatus
-
+from warden.models import ComplianceMapping, Finding, Severity, TrapDefenseStatus
 
 # --- Sub-check definitions ---
 
@@ -92,7 +91,10 @@ DEFENSE_CHECKS = [
             r"approve.*cross.?check",
         ],
         "severity": Severity.HIGH,
-        "message": "No approval integrity verification — agent summaries for approval not cross-checked against actual actions",
+        "message": (
+            "No approval integrity verification -- agent summaries for approval "
+            "not cross-checked against actual actions"
+        ),
         "deepmind_stat": "Approval fatigue exploitation",
         "compliance": ComplianceMapping(
             eu_ai_act="Article 14",
@@ -245,5 +247,8 @@ def _collect_source(target: Path) -> str:
 
 def _should_skip(filepath: Path) -> bool:
     parts = filepath.parts
-    skip_dirs = {".venv", "venv", "node_modules", ".git", "__pycache__", "dist", "build", "site-packages", "out", ".next", ".omc", ".claude"}
+    skip_dirs = {
+        ".venv", "venv", "node_modules", ".git", "__pycache__",
+        "dist", "build", "site-packages", "out", ".next", ".omc", ".claude",
+    }
     return bool(skip_dirs.intersection(parts))

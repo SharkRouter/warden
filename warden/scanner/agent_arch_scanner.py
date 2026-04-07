@@ -5,9 +5,8 @@ from __future__ import annotations
 import ast
 import re
 from pathlib import Path
-from typing import Any
 
-from warden.models import Finding, Severity, ComplianceMapping
+from warden.models import ComplianceMapping, Finding, Severity
 
 
 def scan_agent_arch(target: Path) -> tuple[list[Finding], dict[str, int]]:
@@ -207,5 +206,8 @@ def _count_signals(target: Path, patterns: list[str]) -> int:
 
 def _should_skip(filepath: Path) -> bool:
     parts = filepath.parts
-    skip_dirs = {".venv", "venv", "node_modules", ".git", "__pycache__", "dist", "build", "site-packages", "out", ".next", ".omc", ".claude"}
+    skip_dirs = {
+        ".venv", "venv", "node_modules", ".git", "__pycache__",
+        "dist", "build", "site-packages", "out", ".next", ".omc", ".claude",
+    }
     return bool(skip_dirs.intersection(parts))

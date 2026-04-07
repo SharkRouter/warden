@@ -10,11 +10,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from warden import __version__, __scoring_model__
-from warden.models import ScanResult, Severity, ScoreLevel
+from warden import __scoring_model__, __version__
+from warden.models import ScanResult, ScoreLevel, Severity
 from warden.scoring.dimensions import ALL_DIMENSIONS, GROUPS
-from warden.scanner.competitors import COMPETITORS
-
 
 SEVERITY_COLORS = {
     Severity.CRITICAL: "#e74c3c",
@@ -286,10 +284,14 @@ def _trap_defense_box(result: ScanResult) -> str:
 
     citation = ""
     if d17.raw == 0:
-        citation = """<div class="citation">
-  &#9888; Your environment is exposed to 6 trap types with documented 80%+ attack success rates.<br>
-  <cite>Franklin, Toma&scaron;ev, Jacobs, Leibo, Osindero. &ldquo;AI Agent Traps.&rdquo; Google DeepMind, March 2026.</cite>
-</div>"""
+        citation = (
+            '<div class="citation">\n'
+            "  &#9888; Your environment is exposed to 6 trap types with "
+            "documented 80%+ attack success rates.<br>\n"
+            "  <cite>Franklin, Toma&scaron;ev, Jacobs, Leibo, Osindero. "
+            "&ldquo;AI Agent Traps.&rdquo; Google DeepMind, March 2026."
+            "</cite>\n</div>"
+        )
 
     return f"""<div class="section trap-box">
   <h2>D17: Adversarial Resilience — {d17.raw} / {d17.max}</h2>
@@ -304,7 +306,11 @@ def _competitor_section(result: ScanResult) -> str:
 
     rows = []
     for c in result.competitors:
-        conf_color = {"high": "var(--green)", "medium": "var(--medium)", "low": "var(--text-dim)"}.get(c.confidence, "var(--text)")
+        color_map = {
+            "high": "var(--green)", "medium": "var(--medium)",
+            "low": "var(--text-dim)",
+        }
+        conf_color = color_map.get(c.confidence, "var(--text)")
         strengths = ", ".join(c.strengths[:3]) if c.strengths else "—"
         weaknesses = ", ".join(c.weaknesses[:2]) if c.weaknesses else "—"
         rows.append(f"""<tr>
@@ -351,11 +357,23 @@ def _market_table(result: ScanResult) -> str:
     dim_headers = "".join(f"<th>D{i}</th>" for i in range(1, 18))
     rows = []
     for name, cat, scores, total in market_data:
+        def _dim_color(s: int) -> str:
+            if s >= 80:
+                return "var(--green)"
+            if s >= 50:
+                return "var(--medium)"
+            if s > 0:
+                return "var(--critical)"
+            return "var(--text-dim)"
+
         cells = "".join(
-            f'<td style="color:{"var(--green)" if s >= 80 else "var(--medium)" if s >= 50 else "var(--critical)" if s > 0 else "var(--text-dim)"}">{s}%</td>'
+            f'<td style="color:{_dim_color(s)}">{s}%</td>'
             for s in scores
         )
-        rows.append(f"<tr><td style='text-align:left'>{_escape(name)}</td><td>{cat}</td>{cells}<td><strong>{total}</strong></td></tr>")
+        rows.append(
+            f"<tr><td style='text-align:left'>{_escape(name)}</td>"
+            f"<td>{cat}</td>{cells}<td><strong>{total}</strong></td></tr>"
+        )
 
     return f"""<div class="section">
   <h2>Market Comparison (17 vendors x 17 dimensions)</h2>

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from warden.models import DimensionScore, ScoreLevel, ScanResult
-from warden.scoring.dimensions import ALL_DIMENSIONS, TOTAL_RAW_MAX, DIMENSIONS_BY_ID
+from warden.models import DimensionScore, ScanResult, ScoreLevel
+from warden.scoring.dimensions import ALL_DIMENSIONS, TOTAL_RAW_MAX
 
 
 def get_score_level(score: int) -> ScoreLevel:

@@ -7,8 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from warden.models import Finding, Severity, ComplianceMapping
-
+from warden.models import ComplianceMapping, Finding, Severity
 
 COMPLIANCE_KEYWORDS = {
     "gdpr", "soc2", "soc 2", "iso27001", "iso 27001",

@@ -7,8 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from warden.models import Finding, Severity, ComplianceMapping
-
+from warden.models import ComplianceMapping, Finding, Severity
 
 # --- AST Detectors ---
 

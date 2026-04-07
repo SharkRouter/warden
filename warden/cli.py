@@ -7,8 +7,7 @@ from pathlib import Path
 
 import click
 
-from warden import __version__, __scoring_model__
-
+from warden import __scoring_model__, __version__
 
 BANNER = r"""
   ____    __              __   ___            __
@@ -57,17 +56,17 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     start = time.monotonic()
 
     # Import scanners lazily to keep CLI startup fast
-    from warden.scanner.code_analyzer import scan_code
-    from warden.scanner.mcp_scanner import scan_mcp
-    from warden.scanner.infra_analyzer import scan_infra
-    from warden.scanner.secrets_scanner import scan_secrets
-    from warden.scanner.agent_arch_scanner import scan_agent_arch
-    from warden.scanner.dependency_scanner import scan_dependencies
-    from warden.scanner.audit_scanner import scan_audit
-    from warden.scanner.trap_defense_scanner import scan_trap_defense
-    from warden.scanner.competitors import detect_competitors
-    from warden.scoring.engine import apply_scores
     from warden.models import ScanResult
+    from warden.scanner.agent_arch_scanner import scan_agent_arch
+    from warden.scanner.audit_scanner import scan_audit
+    from warden.scanner.code_analyzer import scan_code
+    from warden.scanner.competitors import detect_competitors
+    from warden.scanner.dependency_scanner import scan_dependencies
+    from warden.scanner.infra_analyzer import scan_infra
+    from warden.scanner.mcp_scanner import scan_mcp
+    from warden.scanner.secrets_scanner import scan_secrets
+    from warden.scanner.trap_defense_scanner import scan_trap_defense
+    from warden.scoring.engine import apply_scores
 
     result = ScanResult(target_path=str(target))
 
@@ -130,8 +129,8 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
         click.echo('     "AI Agent Traps." Google DeepMind, March 2026)')
 
     # Generate reports
-    from warden.report.json_writer import write_json_report
     from warden.report.html_writer import write_html_report
+    from warden.report.json_writer import write_json_report
 
     if output_format in ("json", "all"):
         json_path = out_dir / "warden_report.json"
@@ -150,7 +149,7 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
 @cli.command()
 def methodology() -> None:
     """Print the scoring methodology (17 dimensions, weights, levels)."""
-    from warden.scoring.dimensions import ALL_DIMENSIONS, GROUPS, TOTAL_RAW_MAX
+    from warden.scoring.dimensions import GROUPS, TOTAL_RAW_MAX
 
     click.echo(f"Warden Scoring Model v{__scoring_model__}")
     click.echo(f"Total raw: {TOTAL_RAW_MAX} points across {len(GROUPS)} groups, normalized to /100")

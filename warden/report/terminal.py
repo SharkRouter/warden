@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
+from rich.table import Table
 
-from warden.models import ScanResult, Severity, ScoreLevel
+from warden.models import ScanResult, ScoreLevel, Severity
 from warden.scoring.dimensions import GROUPS
-
 
 SEVERITY_COLORS = {
     Severity.CRITICAL: "bold red",

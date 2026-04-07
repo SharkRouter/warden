@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from warden import __version__, __scoring_model__
+from warden import __scoring_model__, __version__
 from warden.models import ScanResult
 
 

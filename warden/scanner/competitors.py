@@ -373,5 +373,8 @@ def _check_processes(process_names: list[str]) -> list[str]:
 
 def _should_skip(filepath: Path) -> bool:
     parts = filepath.parts
-    skip_dirs = {".venv", "venv", "node_modules", ".git", "__pycache__", "dist", "build", "site-packages", "out", ".next", ".omc", ".claude"}
+    skip_dirs = {
+        ".venv", "venv", "node_modules", ".git", "__pycache__",
+        "dist", "build", "site-packages", "out", ".next", ".omc", ".claude",
+    }
     return bool(skip_dirs.intersection(parts))

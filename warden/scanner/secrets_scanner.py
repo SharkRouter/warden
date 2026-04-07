@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from warden.models import Finding, Severity, SecretMatch, ComplianceMapping
+from warden.models import ComplianceMapping, Finding, SecretMatch, Severity
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,11 @@ SECRET_PATTERNS = [
     SecretPattern("Anthropic API Key",   r"sk-ant-[a-zA-Z0-9\-]{20,}",                    "CRITICAL"),
     SecretPattern("Google API Key",      r"AIza[0-9A-Za-z\-_]{35}",                        "CRITICAL"),
     SecretPattern("AWS Access Key",      r"AKIA[0-9A-Z]{16}",                              "CRITICAL"),
-    SecretPattern("AWS Secret Key",      r"(?:aws_secret|AWS_SECRET|secret_access_key)\s*[=:]\s*['\"]?[0-9a-zA-Z/+]{40}", "HIGH"),
+    SecretPattern(
+        "AWS Secret Key",
+        r"(?:aws_secret|AWS_SECRET|secret_access_key)\s*[=:]\s*['\"]?[0-9a-zA-Z/+]{40}",
+        "HIGH",
+    ),
     SecretPattern("GitHub Token",        r"gh[ps]_[A-Za-z0-9_]{36,}",                      "HIGH"),
     SecretPattern("Groq API Key",        r"gsk_[a-zA-Z0-9]{20,}",                          "CRITICAL"),
     SecretPattern("HuggingFace Token",   r"hf_[a-zA-Z0-9]{20,}",                           "HIGH"),

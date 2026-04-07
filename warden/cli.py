@@ -57,15 +57,13 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     )
     console.print(f"Scanning: [white]{target}[/white]")
 
-    # Count analyzable files (can be slow on large repos)
-    from warden.scanner.code_analyzer import _should_skip
+    # Count analyzable files — single walk, prune skip dirs
+    from warden.scanner.code_analyzer import _walk_files
 
     with console.status("[bright_cyan]Indexing files...[/bright_cyan]"):
-        py_count = sum(1 for f in target.rglob("*.py") if not _should_skip(f))
-        js_count = sum(
-            1 for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
-            for f in target.rglob(ext) if not _should_skip(f)
-        )
+        _py_files, _js_files = _walk_files(target)
+        py_count = len(_py_files)
+        js_count = len(_js_files)
     console.print(f"  Found: {py_count} Python, {js_count} JS/TS files")
     console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
 
@@ -116,6 +114,7 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
         Progress,
         TaskProgressColumn,
         TextColumn,
+        TimeElapsedColumn,
     )
 
     for label, scanner_fn in all_layers:
@@ -126,6 +125,7 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
                 BarColumn(bar_width=25),
                 TaskProgressColumn(),
                 MofNCompleteColumn(),
+                TimeElapsedColumn(),
                 console=console,
                 transient=True,
             ) as progress:

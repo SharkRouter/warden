@@ -333,12 +333,17 @@ PYTHON_DETECTORS_CRITICAL_ONLY = [
 ]
 
 
-def _scan_python_file(filepath: Path) -> list[Finding]:
+def _scan_python_file(
+    filepath: Path,
+    content: str | None = None,
+) -> list[Finding]:
     """Run all AST detectors on a single Python file."""
     try:
-        source = filepath.read_text(encoding="utf-8", errors="ignore")
+        source = content if content is not None else filepath.read_text(
+            encoding="utf-8", errors="ignore"
+        )
         tree = ast.parse(source, filename=str(filepath))
-    except (SyntaxError, UnicodeDecodeError):
+    except (SyntaxError, UnicodeDecodeError, OSError):
         return []
 
     is_test = _is_test_file(filepath)
@@ -374,6 +379,38 @@ def _scan_js_file(filepath: Path) -> list[Finding]:
     return findings
 
 
+def _walk_files(target: Path) -> tuple[list[Path], list[Path]]:
+    """Walk the tree ONCE and return (python_files, js_ts_files).
+
+    Uses os.walk to prune skip_dirs at the directory level — avoids
+    traversing node_modules, .git, etc. entirely.
+    """
+    import os
+
+    skip_dirs = {
+        ".venv", "venv", "node_modules", ".git", "__pycache__",
+        ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
+        ".eggs", "site-packages", "out", ".next", ".omc", ".claude",
+    }
+    py_exts = {".py"}
+    js_exts = {".js", ".ts", ".jsx", ".tsx"}
+
+    py_files: list[Path] = []
+    js_files: list[Path] = []
+
+    for dirpath, dirnames, filenames in os.walk(target):
+        # Prune skip dirs IN-PLACE so os.walk doesn't descend into them
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+        for fname in filenames:
+            ext = Path(fname).suffix.lower()
+            if ext in py_exts:
+                py_files.append(Path(dirpath) / fname)
+            elif ext in js_exts:
+                js_files.append(Path(dirpath) / fname)
+
+    return py_files, js_files
+
+
 def scan_code(
     target: Path,
     on_file: object = None,
@@ -386,25 +423,38 @@ def scan_code(
     findings: list[Finding] = []
     _progress = on_file if callable(on_file) else None
 
-    # Scan Python files
-    for py_file in target.rglob("*.py"):
-        if _should_skip(py_file):
-            continue
-        findings.extend(_scan_python_file(py_file))
+    py_files, js_files = _walk_files(target)
+
+    # Cache Python file contents — read once, reuse for governance signal scoring
+    py_contents: dict[str, str] = {}
+    for py_file in py_files:
+        try:
+            py_contents[str(py_file)] = py_file.read_text(
+                encoding="utf-8", errors="ignore"
+            )
+        except OSError:
+            pass
+
+    # Scan Python files using cached content
+    for py_file in py_files:
+        content = py_contents.get(str(py_file))
+        if content is not None:
+            findings.extend(_scan_python_file(py_file, content=content))
         if _progress:
             _progress()
 
     # Scan JS/TS files (skip frontend/UI — focus on agent/backend code)
-    for ext in ("*.js", "*.ts", "*.jsx", "*.tsx"):
-        for js_file in target.rglob(ext):
-            if _should_skip(js_file) or _is_test_file(js_file) or _is_frontend_file(js_file):
-                continue
-            findings.extend(_scan_js_file(js_file))
-            if _progress:
-                _progress()
+    for js_file in js_files:
+        if _is_test_file(js_file) or _is_frontend_file(js_file):
+            continue
+        findings.extend(_scan_js_file(js_file))
+        if _progress:
+            _progress()
 
-    # Calculate dimension scores based on findings (inverse — fewer findings = higher score)
-    scores = _calculate_layer_scores(findings, target)
+    # Calculate dimension scores — uses cached content, no re-walk
+    scores = _calculate_layer_scores(
+        findings, target, py_contents=py_contents,
+    )
     return findings, scores
 
 
@@ -451,7 +501,11 @@ def _is_frontend_file(filepath: Path) -> bool:
     return bool(frontend_dirs.intersection(parts_lower)) and filepath.suffix in (".js", ".ts", ".jsx", ".tsx")
 
 
-def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, int]:
+def _calculate_layer_scores(
+    findings: list[Finding],
+    target: Path,
+    py_contents: dict[str, str] | None = None,
+) -> dict[str, int]:
     """Score dimensions based on governance signal detection.
 
     Additive: presence of governance patterns = positive score.
@@ -467,7 +521,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     # --- All 17 dimensions with governance signal detection ---
 
     # D1: Tool Inventory (max 25 — Layer 1 contributes up to 15)
-    d1 = _count_governance_signals(target, [
+    d1 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"tool.*catalog", r"tool.*registry", r"mcp.*config",
         r"tool.*inventory", r"available.*tools", r"tool.*schema",
         r"tool.*discover", r"ToolRegistry", r"tool_list",
@@ -475,7 +529,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D1"] = min(d1 * 3, 15)
 
     # D2: Risk Detection (max 20 — up to 12)
-    d2 = _count_governance_signals(target, [
+    d2 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"risk.*classif", r"risk.*score", r"risk.*assess",
         r"semantic.*analy", r"intent.*check", r"RiskScore",
         r"classify.*risk", r"risk.*level", r"co.?occurrence",
@@ -483,7 +537,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D2"] = min(d2 * 2, 12)
 
     # D3: Policy Coverage (max 20 — up to 14)
-    d3 = _count_governance_signals(target, [
+    d3 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"policy.*engine", r"allow.*list", r"deny.*list",
         r"policy.*enforce", r"deny.*by.*default", r"PolicyEngine",
         r"guard.*chain", r"permission.*check", r"yaml.*polic",
@@ -492,7 +546,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D3"] = min(d3 * 2, 14)
 
     # D4: Credential Management (max 20 — up to 10, secrets scanner handles rest)
-    d4 = _count_governance_signals(target, [
+    d4 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"secrets.*manager", r"key.*rotation", r"vault",
         r"credential.*lifecycle", r"key.*manager", r"KMS",
         r"encrypt.*key", r"nhi.*credential",
@@ -500,7 +554,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D4"] = min(d4 * 2, 10)
 
     # D5: Log Hygiene (max 10 — up to 6)
-    d5 = _count_governance_signals(target, [
+    d5 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"structlog", r"logging\.getLogger", r"import logging",
         r"audit.*log", r"worm.*storage", r"hash.*chain",
         r"log.*retention", r"RotatingFileHandler",
@@ -508,14 +562,14 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D5"] = min(d5 * 2, 6)
 
     # D6: Framework Coverage (max 5)
-    d6 = _count_governance_signals(target, [
+    d6 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"langchain", r"autogen", r"crewai", r"llama.?index",
         r"openai", r"anthropic", r"litellm", r"framework.*detect",
     ])
     scores["D6"] = min(d6, 5)
 
     # D7: Human-in-the-Loop (max 15 — up to 10)
-    d7 = _count_governance_signals(target, [
+    d7 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"approval.*gate", r"dry.?run", r"preview.*mode",
         r"human.*in.*loop", r"plan.*execute", r"require.*approval",
         r"confirm.*action", r"DryRun", r"approval.*flow",
@@ -524,7 +578,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D7"] = min(d7 * 2, 10)
 
     # D8: Agent Identity (max 15 — up to 9)
-    d8 = _count_governance_signals(target, [
+    d8 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"agent.*registry", r"agent.*id", r"identity.*token",
         r"delegation.*chain", r"agent.*passport", r"AgentPassport",
         r"agent.*lifecycle", r"agent.*state",
@@ -532,7 +586,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D8"] = min(d8 * 2, 9)
 
     # D9: Threat Detection (max 20 — up to 14)
-    d9 = _count_governance_signals(target, [
+    d9 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"anomaly.*detect", r"behavioral.*baseline", r"kill.*switch",
         r"threat.*detect", r"jailbreak.*track", r"circuit.*breaker",
         r"rate.*limit", r"suspicious.*pattern", r"canary",
@@ -542,7 +596,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D9"] = min(d9 * 2, 14)
 
     # D10: Prompt Security (max 15 — up to 10)
-    d10 = _count_governance_signals(target, [
+    d10 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"prompt.*inject", r"jailbreak.*detect", r"content.*filter",
         r"input.*sanitiz", r"prompt.*guard", r"injection.*scan",
         r"ContentInjectionDetector", r"prompt.*security",
@@ -551,7 +605,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D10"] = min(d10 * 2, 10)
 
     # D11: Cloud / Platform (max 10 — up to 6)
-    d11 = _count_governance_signals(target, [
+    d11 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"sso", r"saml", r"oidc", r"siem.*integrat",
         r"marketplace", r"multi.*cloud", r"idp",
         r"rbac", r"role.*based", r"oauth", r"multi.*tenant",
@@ -559,7 +613,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D11"] = min(d11 * 2, 6)
 
     # D12: LLM Observability (max 10 — up to 7)
-    d12 = _count_governance_signals(target, [
+    d12 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"cost.*track", r"latency.*monitor", r"model.*analytic",
         r"token.*count", r"usage.*track", r"token.*usage",
         r"model.*cost", r"billing", r"metering",
@@ -567,14 +621,14 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D12"] = min(d12 * 2, 7)
 
     # D13: Data Recovery (max 10 — up to 5)
-    d13 = _count_governance_signals(target, [
+    d13 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"rollback", r"undo.*action", r"point.*in.*time",
         r"snapshot", r"restore", r"backup",
     ])
     scores["D13"] = min(d13 * 2, 5)
 
     # D14: Compliance Maturity (max 10 — up to 6)
-    d14 = _count_governance_signals(target, [
+    d14 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"soc.?2", r"iso.?27001", r"eu.?ai.?act", r"gdpr",
         r"compliance.*report", r"regulatory.*map", r"hipaa",
         r"evidence.*collect", r"audit.*trail",
@@ -582,7 +636,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D14"] = min(d14 * 2, 6)
 
     # D15: Post-Exec Verification (max 10 — up to 7)
-    d15 = _count_governance_signals(target, [
+    d15 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"verif.*result", r"PASS.*FAIL", r"result.*valid",
         r"post.*exec", r"fingerprint", r"output.*assurance",
         r"verify.*output", r"verification.*engine",
@@ -590,7 +644,7 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     scores["D15"] = min(d15 * 2, 7)
 
     # D16: Data Flow Governance (max 10 — up to 6)
-    d16 = _count_governance_signals(target, [
+    d16 = _count_governance_signals(target, file_contents=py_contents, patterns=[
         r"taint.*label", r"data.*classif", r"cross.*tool.*leak",
         r"data.*flow", r"pii.*detect", r"dlp", r"data.*loss",
         r"sensitivity.*label", r"data.*governance",
@@ -600,19 +654,34 @@ def _calculate_layer_scores(findings: list[Finding], target: Path) -> dict[str, 
     return scores
 
 
-def _count_governance_signals(target: Path, patterns: list[str]) -> int:
-    """Count how many governance-related patterns exist in .py files."""
+def _count_governance_signals(
+    target: Path,
+    patterns: list[str],
+    file_contents: dict[str, str] | None = None,
+) -> int:
+    """Count how many governance-related patterns exist in .py files.
+
+    If file_contents is provided, uses cached content instead of re-reading.
+    """
     count = 0
     compiled = [re.compile(p, re.IGNORECASE) for p in patterns]
-    for py_file in target.rglob("*.py"):
-        if _should_skip(py_file):
-            continue
-        try:
-            content = py_file.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
-            continue
-        for pat in compiled:
-            if pat.search(content):
-                count += 1
-                break  # Count each file only once per pattern set
+
+    if file_contents is not None:
+        for content in file_contents.values():
+            for pat in compiled:
+                if pat.search(content):
+                    count += 1
+                    break
+    else:
+        for py_file in target.rglob("*.py"):
+            if _should_skip(py_file):
+                continue
+            try:
+                content = py_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for pat in compiled:
+                if pat.search(content):
+                    count += 1
+                    break
     return count

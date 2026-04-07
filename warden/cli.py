@@ -28,10 +28,10 @@ console = Console()
 def cli(ctx: click.Context) -> None:
     """Warden -- AI Agent Governance Scanner."""
     if ctx.invoked_subcommand is None:
-        console.print(BANNER, style="bold blue", highlight=False)
+        console.print(BANNER, style="bold bright_blue", highlight=False)
         console.print(
             f"[bold]Warden v{__version__}[/bold] -- "
-            "[dim]AI Agent Governance Scanner[/dim]"
+            "[white]AI Agent Governance Scanner[/white]"
         )
         console.print()
         console.print("  warden [bold]scan[/bold] <path>       Scan a project")
@@ -50,12 +50,12 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     target = Path(path).resolve()
     out_dir = Path(output_dir).resolve() if output_dir else Path.cwd()
 
-    console.print(BANNER, style="bold blue", highlight=False)
+    console.print(BANNER, style="bold bright_blue", highlight=False)
     console.print(
         f"[bold]Warden v{__version__}[/bold] -- "
-        "[dim]AI Agent Governance Scanner[/dim]"
+        "[white]AI Agent Governance Scanner[/white]"
     )
-    console.print(f"Scanning: [cyan]{target}[/cyan]")
+    console.print(f"Scanning: [bright_cyan]{target}[/bright_cyan]")
 
     # Count analyzable files
     from warden.scanner.code_analyzer import _should_skip
@@ -63,7 +63,7 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     js_count = sum(1 for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
                    for f in target.rglob(ext) if not _should_skip(f))
     console.print(f"  Analyzable: {py_count} Python, {js_count} JS/TS files")
-    console.print("[blue]" + "-" * 50 + "[/blue]")
+    console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
 
     start = time.monotonic()
 
@@ -95,75 +95,60 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
 
     raw_scores: dict[str, int] = {}
 
-    # Add D17 + competitor detection to the pipeline
-    all_steps = [
-        *scanners,
-        ("D17: Adversarial Resilience", None),
-        ("Competitor Detection", None),
-    ]
+    from rich.status import Status
 
-    from rich.progress import BarColumn, Progress, TextColumn
-
-    layer_results: list[str] = []
-
-    with Progress(
-        TextColumn("[blue]{task.description}[/blue]"),
-        BarColumn(bar_width=20),
-        TextColumn("[dim]{task.percentage:>3.0f}%[/dim]"),
-        console=console,
-        transient=True,
-    ) as progress:
-        task = progress.add_task("Scanning...", total=len(all_steps))
-
-        for label, scanner_fn in scanners:
-            progress.update(task, description=label)
+    for label, scanner_fn in scanners:
+        with Status(
+            f"[bright_cyan]{label}[/bright_cyan]",
+            console=console,
+            spinner="dots",
+        ):
             findings, scores = scanner_fn(target)
-            result.findings.extend(findings)
-            for dim_id, score in scores.items():
-                raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
-            count = len(findings)
-            suffix = "finding" if count == 1 else "findings"
-            critical = sum(
-                1 for f in findings if f.severity.value == "CRITICAL"
-            )
-            extra = f" ([red]{critical} CRITICAL[/red])" if critical else ""
-            dots = "." * (28 - len(label))
-            layer_results.append(
-                f"  {label} {dots} {count} {suffix}{extra}"
-            )
-            progress.advance(task)
-
-        # D17 trap defense
-        progress.update(task, description="D17: Adversarial Resilience")
-        trap_findings, trap_scores, trap_status = scan_trap_defense(target)
-        result.findings.extend(trap_findings)
-        result.trap_defense = trap_status
-        for dim_id, score in trap_scores.items():
+        result.findings.extend(findings)
+        for dim_id, score in scores.items():
             raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
-        progress.advance(task)
+        count = len(findings)
+        suffix = "finding" if count == 1 else "findings"
+        critical = sum(
+            1 for f in findings if f.severity.value == "CRITICAL"
+        )
+        extra = f" ([red]{critical} CRITICAL[/red])" if critical else ""
+        dots = "." * (28 - len(label))
+        console.print(f"  {label} {dots} {count} {suffix}{extra}")
 
-        # Competitor detection
-        progress.update(task, description="Competitor Detection")
+    # D17 trap defense
+    with Status(
+        "[bright_cyan]D17: Adversarial Resilience[/bright_cyan]",
+        console=console,
+        spinner="dots",
+    ):
+        trap_findings, trap_scores, trap_status = scan_trap_defense(target)
+    result.findings.extend(trap_findings)
+    result.trap_defense = trap_status
+    for dim_id, score in trap_scores.items():
+        raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
+
+    # Competitor detection
+    with Status(
+        "[bright_cyan]Competitor Detection[/bright_cyan]",
+        console=console,
+        spinner="dots",
+    ):
         competitors, comp_gtm = detect_competitors(target)
-        result.competitors = competitors
-        result.gtm_signal = comp_gtm
-        progress.advance(task)
-
-    # Print layer results after progress bar clears
-    for line in layer_results:
-        console.print(line)
+    result.competitors = competitors
+    result.gtm_signal = comp_gtm
 
     if competitors:
         names = ", ".join(c.display_name for c in competitors if c.confidence != "low")
         if names:
-            console.print(f"\n  Governance tools detected: [cyan]{names}[/cyan]")
+            console.print(f"\n  Governance tools detected: [bright_cyan]{names}[/bright_cyan]")
     console.print("  Competitors in registry: 17")
 
     # Apply scores
     apply_scores(result, raw_scores)
 
     elapsed = time.monotonic() - start
-    console.print("[blue]" + "-" * 50 + "[/blue]")
+    console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
 
     # Color the score based on level
     level = result.level.value
@@ -199,14 +184,21 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     if output_format in ("json", "all"):
         json_path = out_dir / "warden_report.json"
         write_json_report(result, json_path)
-        console.print(f"\n  Full data: [dim]{json_path}[/dim]")
+        file_url = json_path.as_uri()
+        console.print(
+            f"\n  Full data: [link={file_url}]{json_path}[/link]"
+        )
 
     if output_format in ("html", "all"):
         html_path = out_dir / "warden_report.html"
         write_html_report(result, html_path)
-        console.print(f"  Report saved: [bold cyan]{html_path}[/bold cyan]")
+        file_url = html_path.as_uri()
+        console.print(
+            f"  Report:    [bold bright_cyan][link={file_url}]"
+            f"{html_path}[/link][/bold bright_cyan]"
+        )
 
-    console.print("[blue]" + "-" * 50 + "[/blue]")
+    console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
     console.print(f"  [dim]Completed in {elapsed:.1f}s[/dim]")
 
 

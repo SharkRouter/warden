@@ -39,13 +39,34 @@ def cli(ctx: click.Context) -> None:
         console.print("  warden [bold]leaderboard[/bold]       Vendor scores")
 
 
+LAYER_NAMES = {
+    "code": "Layer 1: Code Patterns",
+    "mcp": "Layer 2: MCP Servers",
+    "infra": "Layer 3: Infrastructure",
+    "secrets": "Layer 4: Secrets",
+    "agent": "Layer 5: Agent Architecture",
+    "deps": "Layer 6: Supply Chain",
+    "audit": "Layer 7: Audit & Compliance",
+    "cicd": "Layer 8: CI/CD Governance",
+    "iac": "Layer 9: IaC Security",
+    "frameworks": "Layer 10: Framework Governance",
+}
+
+
 @cli.command()
 @click.argument("path", type=click.Path(exists=True), default=".")
 @click.option("--format", "output_format", type=click.Choice(["json", "html", "all"]),
               default="all", help="Output format (default: all)")
 @click.option("--output-dir", type=click.Path(), default=None,
               help="Directory for report files (default: current directory)")
-def scan(path: str, output_format: str, output_dir: str | None) -> None:
+@click.option("--skip", "skip_layers", default=None,
+              help="Layers to skip (code,mcp,infra,secrets,agent,deps,audit,cicd,iac,frameworks)")
+@click.option("--only", "only_layers", default=None,
+              help="Only run these layers (code,mcp,infra,secrets,agent,deps,audit,cicd,iac,frameworks)")
+def scan(
+    path: str, output_format: str, output_dir: str | None,
+    skip_layers: str | None, only_layers: str | None,
+) -> None:
     """Scan a project for AI agent governance posture."""
     target = Path(path).resolve()
     out_dir = Path(output_dir).resolve() if output_dir else Path.cwd()
@@ -78,9 +99,12 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     from warden.models import ScanResult
     from warden.scanner.agent_arch_scanner import scan_agent_arch
     from warden.scanner.audit_scanner import scan_audit
+    from warden.scanner.cicd_scanner import scan_cicd
     from warden.scanner.code_analyzer import scan_code
     from warden.scanner.competitors import detect_competitors
     from warden.scanner.dependency_scanner import scan_dependencies
+    from warden.scanner.framework_scanner import scan_frameworks
+    from warden.scanner.iac_scanner import scan_iac
     from warden.scanner.infra_analyzer import scan_infra
     from warden.scanner.mcp_scanner import scan_mcp
     from warden.scanner.secrets_scanner import scan_secrets
@@ -99,14 +123,29 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
 
     # All layers in order
     all_layers = [
-        ("Layer 1: Code Patterns", scan_code),
-        ("Layer 2: MCP Servers", scan_mcp),
-        ("Layer 3: Infrastructure", scan_infra),
-        ("Layer 4: Secrets", scan_secrets),
-        ("Layer 5: Agent Architecture", scan_agent_arch),
-        ("Layer 6: Supply Chain", scan_dependencies),
-        ("Layer 7: Audit & Compliance", scan_audit),
+        ("Layer 1: Code Patterns", scan_code, "code"),
+        ("Layer 2: MCP Servers", scan_mcp, "mcp"),
+        ("Layer 3: Infrastructure", scan_infra, "infra"),
+        ("Layer 4: Secrets", scan_secrets, "secrets"),
+        ("Layer 5: Agent Architecture", scan_agent_arch, "agent"),
+        ("Layer 6: Supply Chain", scan_dependencies, "deps"),
+        ("Layer 7: Audit & Compliance", scan_audit, "audit"),
+        ("Layer 8: CI/CD Governance", scan_cicd, "cicd"),
+        ("Layer 9: IaC Security", scan_iac, "iac"),
+        ("Layer 10: Framework Governance", scan_frameworks, "frameworks"),
     ]
+
+    # Apply --skip / --only filters
+    if only_layers:
+        only_set = {s.strip().lower() for s in only_layers.split(",")}
+        all_layers = [t for t in all_layers if t[2] in only_set]
+    elif skip_layers:
+        skip_set = {s.strip().lower() for s in skip_layers.split(",")}
+        all_layers = [t for t in all_layers if t[2] not in skip_set]
+
+    if not all_layers:
+        console.print("[red]No layers selected — nothing to scan.[/red]")
+        return
 
     from rich.progress import (
         BarColumn,
@@ -117,7 +156,7 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
         TimeElapsedColumn,
     )
 
-    for label, scanner_fn in all_layers:
+    for label, scanner_fn, _layer_key in all_layers:
         if label in progress_layers:
             _, total_files = progress_layers[label]
             with Progress(

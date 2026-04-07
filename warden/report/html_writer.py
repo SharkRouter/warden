@@ -650,7 +650,7 @@ def _scan_stats(result: ScanResult, timestamp: str) -> str:
       <div class="stat-label">Dimensions Active</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">7</div>
+      <div class="stat-value">10</div>
       <div class="stat-label">Scan Layers</div>
     </div>
   </div>

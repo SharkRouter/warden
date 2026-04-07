@@ -57,12 +57,16 @@ def scan(path: str, output_format: str, output_dir: str | None) -> None:
     )
     console.print(f"Scanning: [bright_cyan]{target}[/bright_cyan]")
 
-    # Count analyzable files
+    # Count analyzable files (can be slow on large repos)
     from warden.scanner.code_analyzer import _should_skip
-    py_count = sum(1 for f in target.rglob("*.py") if not _should_skip(f))
-    js_count = sum(1 for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
-                   for f in target.rglob(ext) if not _should_skip(f))
-    console.print(f"  Analyzable: {py_count} Python, {js_count} JS/TS files")
+
+    with console.status("[bright_cyan]Indexing files...[/bright_cyan]"):
+        py_count = sum(1 for f in target.rglob("*.py") if not _should_skip(f))
+        js_count = sum(
+            1 for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
+            for f in target.rglob(ext) if not _should_skip(f)
+        )
+    console.print(f"  Found: {py_count} Python, {js_count} JS/TS files")
     console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
 
     import warnings

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "warden-ai"
-version = "1.0.7"
+version = "1.0.8"
 description = "AI Agent Governance Scanner — local-only CLI that scores governance posture across 17 dimensions"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -61,3 +61,6 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"warden/report/html_writer.py" = ["E501"]

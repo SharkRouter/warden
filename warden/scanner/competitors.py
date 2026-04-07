@@ -13,9 +13,8 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from warden.scanner._common import SKIP_DIRS
-
 from warden.models import CompetitorMatch
+from warden.scanner._common import SKIP_DIRS
 
 
 @dataclass(frozen=True)

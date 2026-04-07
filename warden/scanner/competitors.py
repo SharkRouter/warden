@@ -42,7 +42,10 @@ COMPETITORS: dict[str, CompetitorProfile] = {
         processes=["sharkrouter-server", "shark-proxy"],
         docker_images=["sharkrouter/gateway"],
         config_files=["sharkrouter.yaml", ".sharkrc"],
-        code_patterns=[r"base_url.*sharkrouter", r"shark.*proxy"],
+        code_patterns=[
+            r"base_url.*sharkrouter", r"shark.*proxy", r"sharkrouter\.ai",
+            r"SHARK_API_KEY", r"shark.?router",
+        ],
         warden_score=91,
         strengths=["Inline tool-call enforcement", "Agent Passport", "Dry-Run Preview",
                    "Post-exec verification", "Trap defense"],
@@ -240,13 +243,25 @@ def detect_competitors(target: Path) -> tuple[list[CompetitorMatch], str]:
     # Collect installed packages
     installed_packages = _get_installed_packages(target)
 
+    # Collect env var references from project files (.env, docker-compose, etc.)
+    env_file_contents = _collect_env_file_contents(target)
+
+    # Collect docker-compose service images
+    docker_images = _collect_docker_images(target)
+
     for comp_id, profile in COMPETITORS.items():
         signals: list[str] = []
         layers: list[str] = []
 
-        # Layer 1: Environment variables
+        # Layer 1: Environment variables — check project files AND runtime env
         for env_var in profile.env_vars:
-            if os.environ.get(env_var):
+            # Check .env files, docker-compose.yml, etc.
+            if any(env_var in content for content in env_file_contents):
+                signals.append(f"env_file:{env_var}")
+                if "env_vars" not in layers:
+                    layers.append("env_vars")
+            # Also check runtime (less common but still valid)
+            elif os.environ.get(env_var):
                 signals.append(f"env:{env_var}")
                 if "env_vars" not in layers:
                     layers.append("env_vars")
@@ -257,6 +272,13 @@ def detect_competitors(target: Path) -> tuple[list[CompetitorMatch], str]:
             if running:
                 signals.extend(f"process:{p}" for p in running)
                 layers.append("processes")
+
+        # Layer 2b: Docker images (from docker-compose files)
+        for img in profile.docker_images:
+            if any(img.lower() in di.lower() for di in docker_images):
+                signals.append(f"docker:{img}")
+                if "docker_images" not in layers:
+                    layers.append("docker_images")
 
         # Layer 3: Config files
         for config_file in profile.config_files:
@@ -317,6 +339,39 @@ def detect_competitors(target: Path) -> tuple[list[CompetitorMatch], str]:
                 primary_gtm = profile.gtm_signal
 
     return matches, primary_gtm
+
+
+def _collect_env_file_contents(target: Path) -> list[str]:
+    """Read .env files, docker-compose files, and similar config that may contain env var names."""
+    env_patterns = {".env", ".env.local", ".env.production", ".env.example",
+                    "docker-compose.yml", "docker-compose.yaml",
+                    "docker-compose.prod.yml", "docker-compose.override.yml"}
+    contents: list[str] = []
+    # Check root and one level deep
+    for candidate in env_patterns:
+        fpath = target / candidate
+        if fpath.is_file():
+            try:
+                contents.append(fpath.read_text(encoding="utf-8", errors="ignore"))
+            except OSError:
+                continue
+    return contents
+
+
+def _collect_docker_images(target: Path) -> list[str]:
+    """Extract image names from docker-compose files."""
+    images: list[str] = []
+    for name in ("docker-compose.yml", "docker-compose.yaml",
+                 "docker-compose.prod.yml", "docker-compose.override.yml"):
+        fpath = target / name
+        if fpath.is_file():
+            try:
+                content = fpath.read_text(encoding="utf-8", errors="ignore")
+                for match in re.finditer(r'image:\s*["\']?([^\s"\']+)', content):
+                    images.append(match.group(1))
+            except OSError:
+                continue
+    return images
 
 
 def _collect_source(target: Path) -> str:

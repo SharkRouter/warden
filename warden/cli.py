@@ -375,6 +375,77 @@ def leaderboard() -> None:
     click.echo("  Full report: warden scan <path>")
 
 
+def _run_scan(target: Path, skip_layers: str | None = None, only_layers: str | None = None):
+    """Run all scan layers and return a ScanResult. No console output — used by tests and programmatic callers."""
+    import warnings
+
+    warnings.filterwarnings("ignore", category=SyntaxWarning)
+
+    from warden.models import ScanResult
+    from warden.scanner.agent_arch_scanner import scan_agent_arch
+    from warden.scanner.audit_scanner import scan_audit
+    from warden.scanner.cicd_scanner import scan_cicd
+    from warden.scanner.cloud_scanner import scan_cloud
+    from warden.scanner.code_analyzer import scan_code
+    from warden.scanner.competitors import detect_competitors
+    from warden.scanner.dependency_scanner import scan_dependencies
+    from warden.scanner.framework_scanner import scan_frameworks
+    from warden.scanner.iac_scanner import scan_iac
+    from warden.scanner.infra_analyzer import scan_infra
+    from warden.scanner.mcp_scanner import scan_mcp
+    from warden.scanner.multilang_scanner import scan_multilang
+    from warden.scanner.secrets_scanner import scan_secrets
+    from warden.scanner.trap_defense_scanner import scan_trap_defense
+    from warden.scoring.engine import apply_scores
+
+    result = ScanResult(target_path=str(target))
+    raw_scores: dict[str, int] = {}
+
+    all_scan_layers = [
+        (scan_code, "code"),
+        (scan_mcp, "mcp"),
+        (scan_infra, "infra"),
+        (scan_secrets, "secrets"),
+        (scan_agent_arch, "agent"),
+        (scan_dependencies, "deps"),
+        (scan_audit, "audit"),
+        (scan_cicd, "cicd"),
+        (scan_iac, "iac"),
+        (scan_frameworks, "frameworks"),
+        (scan_multilang, "multilang"),
+        (scan_cloud, "cloud"),
+    ]
+
+    if only_layers:
+        only_set = {s.strip().lower() for s in only_layers.split(",")}
+        all_scan_layers = [t for t in all_scan_layers if t[1] in only_set]
+    elif skip_layers:
+        skip_set = {s.strip().lower() for s in skip_layers.split(",")}
+        all_scan_layers = [t for t in all_scan_layers if t[1] not in skip_set]
+
+    for scanner_fn, _key in all_scan_layers:
+        findings, scores = scanner_fn(target)
+        result.findings.extend(findings)
+        for dim_id, score in scores.items():
+            raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
+
+    # D17 trap defense
+    trap_findings, trap_scores, trap_status = scan_trap_defense(target)
+    result.findings.extend(trap_findings)
+    result.trap_defense = trap_status
+    for dim_id, score in trap_scores.items():
+        raw_scores[dim_id] = raw_scores.get(dim_id, 0) + score
+
+    # Competitor detection
+    competitors, comp_gtm = detect_competitors(target)
+    result.competitors = competitors
+    result.gtm_signal = comp_gtm
+
+    # Apply scores
+    apply_scores(result, raw_scores)
+    return result
+
+
 def main() -> None:
     cli()
 

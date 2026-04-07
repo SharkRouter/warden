@@ -26,8 +26,8 @@ def test_mask_preserves_prefix():
 def test_secret_finding_has_only_preview():
     """When scanning, findings should only contain masked preview, not full value."""
     import tempfile
-    import os
     from pathlib import Path
+
     from warden.scanner.secrets_scanner import scan_secrets
 
     # Create a temp file with a fake secret

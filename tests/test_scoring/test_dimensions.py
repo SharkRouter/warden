@@ -3,8 +3,8 @@
 from warden.scoring.dimensions import (
     ALL_DIMENSIONS,
     DIMENSIONS_BY_ID,
-    TOTAL_RAW_MAX,
     GROUPS,
+    TOTAL_RAW_MAX,
 )
 
 

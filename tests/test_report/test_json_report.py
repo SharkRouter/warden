@@ -4,9 +4,9 @@ import json
 import tempfile
 from pathlib import Path
 
-from warden.models import ScanResult, Finding, Severity, ComplianceMapping
-from warden.scoring.engine import apply_scores
+from warden.models import ComplianceMapping, Finding, ScanResult, Severity
 from warden.report.json_writer import write_json_report
+from warden.scoring.engine import apply_scores
 
 
 def _make_result() -> ScanResult:

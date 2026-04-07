@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 
-from warden.scanner.dependency_scanner import scan_dependencies, _levenshtein_distance
+from warden.scanner.dependency_scanner import _levenshtein_distance, scan_dependencies
 
 
 def test_levenshtein_identical():

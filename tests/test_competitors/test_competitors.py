@@ -1,12 +1,11 @@
 """Tests for competitor detection."""
 
-import json
 import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from warden.scanner.competitors import detect_competitors, COMPETITORS
+from warden.scanner.competitors import COMPETITORS, detect_competitors
 
 
 def test_registry_has_18_entries():

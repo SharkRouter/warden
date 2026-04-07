@@ -4,9 +4,9 @@ import re
 import tempfile
 from pathlib import Path
 
-from warden.models import ScanResult, ScoreLevel
-from warden.scoring.engine import apply_scores
+from warden.models import ScanResult
 from warden.report.html_writer import write_html_report
+from warden.scoring.engine import apply_scores
 
 
 def _make_result() -> ScanResult:

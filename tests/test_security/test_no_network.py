@@ -3,7 +3,6 @@
 import ast
 import pathlib
 
-
 BANNED_IMPORTS = {
     "httpx", "requests", "urllib", "aiohttp", "socket", "http.client",
     "urllib3", "urllib.request",

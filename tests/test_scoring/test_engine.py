@@ -1,7 +1,7 @@
 """Tests for scoring engine."""
 
-from warden.scoring.engine import get_score_level, normalize_score, calculate_scores, apply_scores
-from warden.models import ScoreLevel, ScanResult
+from warden.models import ScanResult, ScoreLevel
+from warden.scoring.engine import apply_scores, calculate_scores, get_score_level, normalize_score
 
 
 def test_score_level_governed():
@@ -82,7 +82,6 @@ def test_apply_scores_mutates_result():
 
 def test_sharkrouter_score_91():
     """SharkRouter's own score per the spec should be ~91/100."""
-    from warden.scoring.dimensions import ALL_DIMENSIONS
     # From market scores table: SharkRouter percentages
     pcts = {
         "D1": 100, "D2": 100, "D3": 100, "D4": 90, "D5": 100, "D6": 100,

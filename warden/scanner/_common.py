@@ -3,23 +3,22 @@
 from __future__ import annotations
 
 # Directories to prune during os.walk — never descend into these.
-# These are universally recognized non-source directories: virtual
-# environments, package caches, build outputs, VCS internals, and
-# IDE metadata. No project-specific entries.
+# Only directories that NEVER contain user-authored source code.
+# When in doubt, DON'T skip — false negatives are worse than slow scans.
 SKIP_DIRS: frozenset[str] = frozenset({
-    # Python virtual environments & caches
+    # Version control internals
+    ".git", ".hg", ".svn",
+    # Python: virtual environments & caches (never user code)
     ".venv", "venv", "__pycache__", ".eggs", "site-packages",
     ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache",
     ".pytype", "__pypackages__",
-    # JavaScript / Node
+    # JavaScript: installed packages & framework caches
     "node_modules", ".next", ".nuxt", ".output",
     "bower_components", ".parcel-cache", ".turbo",
-    # Build artifacts
-    "dist", "build", "out", "_build", "target",
-    # Version control
-    ".git", ".hg", ".svn",
-    # IDE / editor
+    # IDE / editor metadata
     ".idea", ".vscode", ".vs",
-    # Coverage
-    "coverage", ".coverage", "htmlcov",
+    # Rust / Java build output (compiled bytecode, never source)
+    "target",
+    # Coverage tool output
+    "htmlcov",
 })

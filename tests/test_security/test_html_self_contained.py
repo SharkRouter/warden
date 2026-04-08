@@ -31,6 +31,7 @@ def test_html_no_external_urls():
     resource_urls = [
         u for u in urls
         if "github.com/SharkRouter" not in u
+        and "github.com/sharkrouter" not in u
         and "sharkrouter.ai" not in u
         and "api.sharkrouter.ai/v1/warden" not in u
     ]

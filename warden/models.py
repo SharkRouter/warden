@@ -46,6 +46,7 @@ class DimensionScore:
     name: str
     raw: int
     max: int
+    signals: list[str] = field(default_factory=list)
 
     @property
     def pct(self) -> int:

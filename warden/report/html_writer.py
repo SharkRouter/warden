@@ -301,8 +301,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 /* --- Footer --- */
 .foot{text-align:center;padding:28px 40px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2.2;max-width:1100px;margin:0 auto}
 .foot a{color:var(--info);text-decoration:none}
-.foot-cta{display:inline-block;margin-top:12px;background:var(--info);color:#000;padding:10px 24px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}
-.foot-cta:hover{background:#93c5fd}
+.foot-cta{display:inline-block;margin-top:12px;background:#3D8494;color:#fff;padding:10px 24px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;letter-spacing:0.5px}
+.foot-cta:hover{background:#4a9bab}
 .foot-priv{color:var(--muted);font-size:10px;margin-top:8px}
 
 /* --- Responsive --- */
@@ -1061,7 +1061,7 @@ def _footer() -> str:
     <div class="foot-priv">Scan data stays on your machine. Email delivery is opt-in only.<br>
     When opted in: score + metadata only. Never: keys, logs, paths, or PII.</div>
     <a href="https://sharkrouter.ai/privacy" style="font-size:10px">Privacy policy</a> &middot;
-    To enforce policies on what Warden found &rarr; <a href="https://sharkrouter.ai" class="foot-cta">sharkrouter.ai &rarr;</a>
+    To enforce policies on what Warden found &rarr; <a href="https://sharkrouter.ai" class="foot-cta">Explore what 91/100 looks like &rarr;</a>
   </div>"""
 
 

@@ -1,19 +1,31 @@
 # Warden — AI Agent Governance Scanner
 
+[![PyPI version](https://img.shields.io/pypi/v/warden-ai)](https://pypi.org/project/warden-ai/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/warden-ai/)
+
 Open-source, local-only CLI scanner that evaluates AI agent governance posture across **12 scan layers** and **17 dimensions**. Scans code patterns, MCP configs, infrastructure, secrets, agent architecture, dependencies, audit compliance, CI/CD pipelines, IaC security, framework-specific governance, multi-language code, and cloud AI services. **No data leaves the machine.**
+
+**Website:** [sharkrouter.ai](https://sharkrouter.ai) · **PyPI:** [warden-ai](https://pypi.org/project/warden-ai/)
 
 ## Quick Start
 
 ```bash
+# With uv (zero setup, one-shot — recommended)
+uvx --from warden-ai warden scan /path/to/your-agent-project
+
 # With pip
 pip install warden-ai
 warden scan /path/to/your-agent-project
-
-# With uv (zero setup, one-shot)
-uvx --from warden-ai warden scan /path/to/your-agent-project
 ```
 
 From zero to governance score in under 60 seconds.
+
+## HTML Report
+
+Warden generates a self-contained HTML report with interactive score breakdown, market comparison, and actionable recommendations — works offline and in air-gapped environments.
+
+![Warden HTML Report](docs/images/warden-report-preview.png)
 
 ## What It Does
 
@@ -89,6 +101,21 @@ warden leaderboard
 12. **Cloud AI Governance** — AWS Bedrock guardrails, Azure AI Content Safety, GCP Vertex AI safety settings, managed identity vs hardcoded keys
 
 Plus **D17: Adversarial Resilience** — 8 sub-checks based on Google DeepMind's "AI Agent Traps" paper (Franklin et al., March 2026).
+
+## HTML Report Features
+
+The HTML report is fully self-contained (no CDN, no external fonts, no network requests):
+
+- **Score gauge** with per-dimension breakdown bars (expandable to show findings)
+- **Scan scope** — file counts, languages detected, layers scanned
+- **Summary grid** — adaptive (MCP-focused when MCP tools exist, findings-focused otherwise)
+- **Solutions comparison table** — per-dimension scores (D1-D17) for your scan vs SharkRouter vs detected tools
+- **Discovered tools** — MCP tool inventory with risk classification (destructive, financial, exfiltration, write-access, read-only)
+- **Governance detection** — which governance layers were found in your codebase
+- **Recommendations** — prioritized remediation steps mapped to compliance frameworks
+- **Workaround Tax** — cost analysis of manual governance vs automated enforcement
+- **Comparison card** — side-by-side score vs SharkRouter with biggest gap dimensions
+- **Email form** — optional report delivery (score metadata only, never source code or secrets)
 
 ## Language Support
 

@@ -1005,20 +1005,20 @@ def _email_form(result: ScanResult) -> str:
   <div class="sec" style="border-color:rgba(96,165,250,0.25)">
     <div class="email-wrap">
       <div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--info);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">&#9993; Get this report by email</div>
-        <div style="font-size:18px;font-weight:700;margin-bottom:6px">Full HTML report + step-by-step remediation guide</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--info);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">&#9993; Get your remediation guide</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px">Personalized remediation plan for your {crit_label}</div>
         <div class="email-info">
-          We'll send this report to your inbox along with a guide for fixing your
-          {crit_label} and getting your zero-scoring dimensions above zero.
+          We'll email you a prioritized remediation guide with the exact steps to fix your
+          biggest governance gaps — ranked by point impact, with actionable instructions per dimension.
         </div>
         <div class="email-cols">
           <div>
             <div class="email-col-hdr" style="color:var(--low)">&#10003; WE SEND</div>
             <ul>
               <li>&rarr; Your score ({result.total_score}/100)</li>
-              <li>&rarr; Tool count and risk levels</li>
-              <li>&rarr; Frameworks detected</li>
-              <li>&rarr; This HTML report</li>
+              <li>&rarr; Top dimension gaps + fixes</li>
+              <li>&rarr; Finding counts by severity</li>
+              <li>&rarr; Detected tools summary</li>
             </ul>
           </div>
           <div>

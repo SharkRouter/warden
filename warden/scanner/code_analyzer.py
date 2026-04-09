@@ -529,138 +529,135 @@ def _calculate_layer_scores(
     for f in findings:
         finding_counts[f.dimension] = finding_counts.get(f.dimension, 0) + 1
 
-    # --- All 17 dimensions with governance signal detection ---
+    # --- All 17 dimensions with tiered governance signal detection ---
+    # Strong patterns = governance-specific (3 pts each, boolean)
+    # Weak patterns = generic app code (1 pt each, boolean, require co-occurrence)
 
-    # D1: Tool Inventory (max 25 — Layer 1 contributes up to 15)
-    d1 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"tool.*catalog", r"tool.*registry", r"mcp.*config",
-        r"tool.*inventory", r"available.*tools", r"tool.*schema",
-        r"tool.*discover", r"ToolRegistry", r"tool_list",
-    ])
-    scores["D1"] = min(d1 * 3, 15)
+    # D1: Tool Inventory (max 25 — Layer 1 contributes up to 12)
+    scores["D1"] = _score_governance_signals(py_contents,
+        strong=[r"ToolRegistry", r"tool.*catalog", r"tool.*inventory",
+                r"tool.*schema.*valid", r"tool.*discover.*regist"],
+        weak=[r"tool.*list", r"available.*tools", r"mcp.*config"],
+        strong_pts=3, weak_pts=1, cap=12, require_co_occurrence=2)
 
-    # D2: Risk Detection (max 20 — up to 12)
-    d2 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"risk.*classif", r"risk.*score", r"risk.*assess",
-        r"semantic.*analy", r"intent.*check", r"RiskScore",
-        r"classify.*risk", r"risk.*level", r"co.?occurrence",
-    ])
-    scores["D2"] = min(d2 * 2, 12)
+    # D2: Risk Detection (max 20 — up to 10)
+    scores["D2"] = _score_governance_signals(py_contents,
+        strong=[r"RiskScore", r"risk.*classif.*tool", r"risk.*assess.*agent",
+                r"intent.*param.*consist", r"co.?occurrence.*detect"],
+        weak=[r"risk.*score", r"risk.*level", r"semantic.*analy"],
+        strong_pts=3, weak_pts=1, cap=10, require_co_occurrence=2)
 
-    # D3: Policy Coverage (max 20 — up to 14)
-    d3 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"policy.*engine", r"allow.*list", r"deny.*list",
-        r"policy.*enforce", r"deny.*by.*default", r"PolicyEngine",
-        r"guard.*chain", r"permission.*check", r"yaml.*polic",
-        r"policy.*mode", r"ALLOW.*DENY.*AUDIT",
-    ])
-    scores["D3"] = min(d3 * 2, 14)
+    # D3: Policy Coverage (max 20 — up to 10)
+    scores["D3"] = _score_governance_signals(py_contents,
+        strong=[r"PolicyEngine", r"policy.*enforce.*tool", r"deny.*by.*default",
+                r"ALLOW.*DENY.*AUDIT", r"guard.*chain.*polic"],
+        weak=[r"allow.*list", r"deny.*list", r"permission.*check",
+              r"policy.*mode", r"yaml.*polic"],
+        strong_pts=3, weak_pts=1, cap=10, require_co_occurrence=3)
 
-    # D4: Credential Management (max 20 — up to 10, secrets scanner handles rest)
-    d4 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"secrets.*manager", r"key.*rotation", r"vault",
-        r"credential.*lifecycle", r"key.*manager", r"KMS",
-        r"encrypt.*key", r"nhi.*credential",
-    ])
-    scores["D4"] = min(d4 * 2, 10)
+    # D4: Credential Management (max 20 — up to 8)
+    scores["D4"] = _score_governance_signals(py_contents,
+        strong=[r"secrets.*manager", r"key.*rotation", r"credential.*lifecycle",
+                r"nhi.*credential", r"KMS.*encrypt"],
+        weak=[r"vault", r"key.*manager", r"encrypt.*key"],
+        strong_pts=3, weak_pts=1, cap=8, require_co_occurrence=2)
 
-    # D5: Log Hygiene (max 10 — up to 6)
-    d5 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"structlog", r"logging\.getLogger", r"import logging",
-        r"audit.*log", r"worm.*storage", r"hash.*chain",
-        r"log.*retention", r"RotatingFileHandler",
-    ])
-    scores["D5"] = min(d5 * 2, 6)
+    # D5: Log Hygiene (max 10 — up to 5)
+    scores["D5"] = _score_governance_signals(py_contents,
+        strong=[r"audit.*log.*tamper", r"worm.*storage", r"hash.*chain.*log",
+                r"log.*retention.*polic", r"immutable.*log"],
+        weak=[r"structlog", r"audit.*log", r"RotatingFileHandler"],
+        strong_pts=2, weak_pts=1, cap=5, require_co_occurrence=2)
+    # Note: "import logging" and "logging.getLogger" removed — too generic
 
-    # D6: Framework Coverage (max 5)
-    d6 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"langchain", r"autogen", r"crewai", r"llama.?index",
-        r"openai", r"anthropic", r"litellm", r"framework.*detect",
-    ])
-    scores["D6"] = min(d6, 5)
+    # D6: Framework Coverage (max 5 — up to 3)
+    scores["D6"] = _score_governance_signals(py_contents,
+        strong=[r"framework.*detect", r"framework.*govern"],
+        weak=[r"langchain", r"autogen", r"crewai", r"llama.?index"],
+        strong_pts=2, weak_pts=1, cap=3, require_co_occurrence=2)
+    # Note: "openai", "anthropic", "litellm" removed — too generic (SDK usage != governance)
 
-    # D7: Human-in-the-Loop (max 15 — up to 10)
-    d7 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"approval.*gate", r"dry.?run", r"preview.*mode",
-        r"human.*in.*loop", r"plan.*execute", r"require.*approval",
-        r"confirm.*action", r"DryRun", r"approval.*flow",
-        r"user.*confirm",
-    ])
-    scores["D7"] = min(d7 * 2, 10)
+    # D7: Human-in-the-Loop (max 15 — up to 8)
+    scores["D7"] = _score_governance_signals(py_contents,
+        strong=[r"approval.*gate", r"human.*in.*loop", r"require.*approval",
+                r"DryRun.*preview", r"approval.*flow.*enforce"],
+        weak=[r"dry.?run", r"preview.*mode", r"confirm.*action",
+              r"plan.*execute", r"user.*confirm"],
+        strong_pts=3, weak_pts=1, cap=8, require_co_occurrence=2)
 
-    # D8: Agent Identity (max 15 — up to 9)
-    d8 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"agent.*registry", r"agent.*id", r"identity.*token",
-        r"delegation.*chain", r"agent.*passport", r"AgentPassport",
-        r"agent.*lifecycle", r"agent.*state",
-    ])
-    scores["D8"] = min(d8 * 2, 9)
+    # D8: Agent Identity (max 15 — up to 8)
+    scores["D8"] = _score_governance_signals(py_contents,
+        strong=[r"AgentPassport", r"agent.*registry.*identit",
+                r"delegation.*chain", r"identity.*token.*agent"],
+        weak=[r"agent.*id", r"agent.*lifecycle", r"agent.*state"],
+        strong_pts=3, weak_pts=1, cap=8, require_co_occurrence=2)
 
-    # D9: Threat Detection (max 20 — up to 14)
-    d9 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"anomaly.*detect", r"behavioral.*baseline", r"kill.*switch",
-        r"threat.*detect", r"jailbreak.*track", r"circuit.*breaker",
-        r"rate.*limit", r"suspicious.*pattern", r"canary",
-        r"behavioral.*monitor", r"cross.*session.*track",
-        r"waf", r"firewall", r"block.*ip", r"quarantine",
-    ])
-    scores["D9"] = min(d9 * 2, 14)
+    # D9: Threat Detection (max 20 — up to 10)
+    scores["D9"] = _score_governance_signals(py_contents,
+        strong=[r"anomaly.*detect.*agent", r"behavioral.*baseline",
+                r"kill.*switch", r"threat.*detect.*llm",
+                r"cross.*session.*track", r"behavioral.*monitor"],
+        weak=[r"circuit.*breaker", r"rate.*limit", r"jailbreak.*track",
+              r"suspicious.*pattern", r"canary", r"quarantine"],
+        strong_pts=3, weak_pts=1, cap=10, require_co_occurrence=2)
+    # Note: "waf", "firewall", "block.*ip" removed — network security, not AI governance
 
-    # D10: Prompt Security (max 15 — up to 10)
-    d10 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"prompt.*inject", r"jailbreak.*detect", r"content.*filter",
-        r"input.*sanitiz", r"prompt.*guard", r"injection.*scan",
-        r"ContentInjectionDetector", r"prompt.*security",
-        r"sanitiz", r"content.*moderation", r"guardrail",
-    ])
-    scores["D10"] = min(d10 * 2, 10)
+    # D10: Prompt Security (max 15 — up to 8)
+    scores["D10"] = _score_governance_signals(py_contents,
+        strong=[r"prompt.*inject.*detect", r"jailbreak.*detect",
+                r"ContentInjectionDetector", r"prompt.*guard.*enforc"],
+        weak=[r"content.*filter", r"input.*sanitiz", r"prompt.*security",
+              r"content.*moderation", r"guardrail"],
+        strong_pts=3, weak_pts=1, cap=8, require_co_occurrence=2)
+    # Note: bare "sanitiz" removed — too generic
 
-    # D11: Cloud / Platform (max 10 — up to 6)
-    d11 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"sso", r"saml", r"oidc", r"siem.*integrat",
-        r"marketplace", r"multi.*cloud", r"idp",
-        r"rbac", r"role.*based", r"oauth", r"multi.*tenant",
-    ])
-    scores["D11"] = min(d11 * 2, 6)
+    # D11: Cloud / Platform (max 10 — up to 5)
+    scores["D11"] = _score_governance_signals(py_contents,
+        strong=[r"siem.*integrat", r"multi.*tenant.*govern",
+                r"marketplace.*govern"],
+        weak=[r"sso", r"saml", r"oidc", r"rbac", r"oauth", r"multi.*tenant"],
+        strong_pts=3, weak_pts=1, cap=5, require_co_occurrence=3)
+    # Note: require 3+ weak hits — single "oauth" doesn't count
 
-    # D12: LLM Observability (max 10 — up to 7)
-    d12 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"cost.*track", r"latency.*monitor", r"model.*analytic",
-        r"token.*count", r"usage.*track", r"token.*usage",
-        r"model.*cost", r"billing", r"metering",
-    ])
-    scores["D12"] = min(d12 * 2, 7)
+    # D12: LLM Observability (max 10 — up to 6)
+    scores["D12"] = _score_governance_signals(py_contents,
+        strong=[r"model.*cost.*track", r"token.*usage.*monitor",
+                r"llm.*observ", r"model.*analytic.*dashboard"],
+        weak=[r"cost.*track", r"latency.*monitor", r"token.*count",
+              r"usage.*track", r"metering"],
+        strong_pts=3, weak_pts=1, cap=6, require_co_occurrence=2)
+    # Note: bare "billing" removed — too generic
 
     # D13: Data Recovery (max 10 — up to 5)
-    d13 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"rollback", r"undo.*action", r"point.*in.*time",
-        r"snapshot", r"restore", r"backup",
-    ])
-    scores["D13"] = min(d13 * 2, 5)
+    scores["D13"] = _score_governance_signals(py_contents,
+        strong=[r"undo.*action.*agent", r"point.*in.*time.*recover",
+                r"rollback.*tool.*call"],
+        weak=[r"rollback", r"snapshot", r"restore", r"backup"],
+        strong_pts=3, weak_pts=1, cap=5, require_co_occurrence=2)
 
-    # D14: Compliance Maturity (max 10 — up to 6)
-    d14 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"soc.?2", r"iso.?27001", r"eu.?ai.?act", r"gdpr",
-        r"compliance.*report", r"regulatory.*map", r"hipaa",
-        r"evidence.*collect", r"audit.*trail",
-    ])
-    scores["D14"] = min(d14 * 2, 6)
+    # D14: Compliance Maturity (max 10 — up to 5)
+    scores["D14"] = _score_governance_signals(py_contents,
+        strong=[r"compliance.*report.*generat", r"regulatory.*map.*dimen",
+                r"evidence.*collect.*audit"],
+        weak=[r"soc.?2", r"iso.?27001", r"eu.?ai.?act", r"gdpr",
+              r"hipaa", r"audit.*trail"],
+        strong_pts=3, weak_pts=1, cap=5, require_co_occurrence=2)
+    # Note: keyword mentions require co-occurrence — lone "gdpr" in a comment won't score
 
-    # D15: Post-Exec Verification (max 10 — up to 7)
-    d15 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"verif.*result", r"PASS.*FAIL", r"result.*valid",
-        r"post.*exec", r"fingerprint", r"output.*assurance",
-        r"verify.*output", r"verification.*engine",
-    ])
-    scores["D15"] = min(d15 * 2, 7)
+    # D15: Post-Exec Verification (max 10 — up to 6)
+    scores["D15"] = _score_governance_signals(py_contents,
+        strong=[r"output.*assurance", r"verification.*engine",
+                r"post.*exec.*verif", r"verify.*output.*result"],
+        weak=[r"PASS.*FAIL", r"result.*valid", r"fingerprint"],
+        strong_pts=3, weak_pts=1, cap=6, require_co_occurrence=2)
 
-    # D16: Data Flow Governance (max 10 — up to 6)
-    d16 = _count_governance_signals(target, file_contents=py_contents, patterns=[
-        r"taint.*label", r"data.*classif", r"cross.*tool.*leak",
-        r"data.*flow", r"pii.*detect", r"dlp", r"data.*loss",
-        r"sensitivity.*label", r"data.*governance",
-    ])
-    scores["D16"] = min(d16 * 2, 6)
+    # D16: Data Flow Governance (max 10 — up to 5)
+    scores["D16"] = _score_governance_signals(py_contents,
+        strong=[r"taint.*label", r"cross.*tool.*leak", r"data.*governance.*polic",
+                r"sensitivity.*label.*classif"],
+        weak=[r"data.*classif", r"pii.*detect", r"dlp",
+              r"data.*loss.*prevent", r"data.*flow.*govern"],
+        strong_pts=3, weak_pts=1, cap=5, require_co_occurrence=2)
 
     return scores
 
@@ -670,9 +667,10 @@ def _count_governance_signals(
     patterns: list[str],
     file_contents: dict[str, str] | None = None,
 ) -> int:
-    """Count how many governance-related patterns exist in .py files.
+    """Count files matching governance patterns (legacy, used by D17/trap).
 
-    If file_contents is provided, uses cached content instead of re-reading.
+    For dimension scoring, prefer _score_governance_signals() which
+    supports strong/weak tiers and co-occurrence.
     """
     count = 0
     compiled = [re.compile(p, re.IGNORECASE) for p in patterns]
@@ -696,3 +694,47 @@ def _count_governance_signals(
                     count += 1
                     break
     return count
+
+
+def _score_governance_signals(
+    file_contents: dict[str, str],
+    strong: list[str],
+    weak: list[str],
+    strong_pts: int = 3,
+    weak_pts: int = 1,
+    cap: int = 10,
+    require_co_occurrence: int = 0,
+) -> int:
+    """Score governance signals with strong/weak tiers and co-occurrence.
+
+    - Strong patterns: governance-specific, earn `strong_pts` each (boolean per pattern).
+    - Weak patterns: generic app code, earn `weak_pts` each (boolean per pattern).
+    - Both are boolean: pattern present anywhere = 1 credit, regardless of file count.
+    - require_co_occurrence: if > 0, weak patterns only count if at least this many
+      distinct weak patterns matched (prevents single generic match from scoring).
+
+    Returns score capped at `cap`.
+    """
+    strong_compiled = [re.compile(p, re.IGNORECASE) for p in strong]
+    weak_compiled = [re.compile(p, re.IGNORECASE) for p in weak]
+
+    # Boolean: did this pattern match anywhere across the codebase?
+    strong_hits = [False] * len(strong_compiled)
+    weak_hits = [False] * len(weak_compiled)
+
+    for content in file_contents.values():
+        for i, pat in enumerate(strong_compiled):
+            if not strong_hits[i] and pat.search(content):
+                strong_hits[i] = True
+        for i, pat in enumerate(weak_compiled):
+            if not weak_hits[i] and pat.search(content):
+                weak_hits[i] = True
+
+    score = sum(strong_pts for hit in strong_hits if hit)
+
+    # Weak patterns only contribute if co-occurrence threshold met
+    weak_count = sum(1 for hit in weak_hits if hit)
+    if weak_count >= max(require_co_occurrence, 1):
+        score += sum(weak_pts for hit in weak_hits if hit)
+
+    return min(score, cap)

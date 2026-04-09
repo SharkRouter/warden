@@ -39,32 +39,41 @@ def scan_mcp(target: Path) -> tuple[list[Finding], dict[str, int], list[McpToolI
     findings: list[Finding] = []
     mcp_tools: list[McpToolInfo] = []
     configs_found = 0
+    servers_found = 0
+    tools_with_inline_def = 0
 
     # Search for MCP config files
     for config_file in _find_mcp_configs(target):
         configs_found += 1
-        file_findings, file_tools = _analyze_mcp_config(config_file)
+        file_findings, file_tools, file_server_count = _analyze_mcp_config(config_file)
         findings.extend(file_findings)
         mcp_tools.extend(file_tools)
+        servers_found += file_server_count
+        tools_with_inline_def += len(file_tools)
 
     scores: dict[str, int] = {}
 
     if configs_found > 0:
-        # MCP configs exist = some tool inventory
-        scores["D1"] = min(configs_found * 5, 15)
+        # D1: configs found = basic awareness, but only full credit if tools are
+        # defined inline (meaning they can actually be analyzed)
+        if tools_with_inline_def > 0:
+            scores["D1"] = min(configs_found * 5, 15)
+        else:
+            # Config-only (no inline tools) = minimal credit for awareness
+            scores["D1"] = min(configs_found * 2, 4)
 
-        # Check for schema validation
-        schema_findings = [f for f in findings if "schema" in f.message.lower()]
-        if not schema_findings:
-            scores["D2"] = 4  # No schema issues = basic risk detection
+        # Only score D2/D3/D4 if there are actual tool definitions to analyze.
+        # "No tools found = no violations" is NOT the same as "compliant".
+        if tools_with_inline_def > 0:
+            schema_findings = [f for f in findings if "schema" in f.message.lower()]
+            if not schema_findings:
+                scores["D2"] = 4
 
-        # Check for auth
-        auth_findings = [f for f in findings if f.dimension == "D3"]
-        scores["D3"] = max(0, 6 - len(auth_findings) * 2)
+            auth_findings = [f for f in findings if f.dimension == "D3"]
+            scores["D3"] = max(0, 6 - len(auth_findings) * 2)
 
-        # Check for TLS
-        tls_findings = [f for f in findings if f.dimension == "D4"]
-        scores["D4"] = max(0, 4 - len(tls_findings) * 2)
+            tls_findings = [f for f in findings if f.dimension == "D4"]
+            scores["D4"] = max(0, 4 - len(tls_findings) * 2)
 
     return findings, scores, mcp_tools
 
@@ -127,8 +136,11 @@ def _severity_from_risk_tags(tags: list[str]) -> Severity:
     return Severity.LOW
 
 
-def _analyze_mcp_config(config_file: Path) -> tuple[list[Finding], list[McpToolInfo]]:
-    """Analyze a single MCP configuration file."""
+def _analyze_mcp_config(config_file: Path) -> tuple[list[Finding], list[McpToolInfo], int]:
+    """Analyze a single MCP configuration file.
+
+    Returns (findings, mcp_tools, server_count).
+    """
     findings: list[Finding] = []
     mcp_tools: list[McpToolInfo] = []
 
@@ -136,19 +148,40 @@ def _analyze_mcp_config(config_file: Path) -> tuple[list[Finding], list[McpToolI
         content = config_file.read_text(encoding="utf-8")
         config = json.loads(content)
     except (json.JSONDecodeError, OSError):
-        return findings, mcp_tools
+        return findings, mcp_tools, 0
 
     servers = config.get("mcpServers", config.get("servers", {}))
     if not isinstance(servers, dict):
-        return findings, mcp_tools
+        return findings, mcp_tools, 0
+
+    server_count = 0
 
     for server_name, server_config in servers.items():
         if not isinstance(server_config, dict):
             continue
+        server_count += 1
 
-        # Check for write tools without auth
         tools = server_config.get("tools", [])
         auth = server_config.get("auth", server_config.get("authentication"))
+
+        # Server defined with command/args but no inline tools — common in real
+        # MCP configs where tools are discovered at runtime via tools/list.
+        if not tools and (server_config.get("command") or server_config.get("url")):
+            findings.append(Finding(
+                layer=2, scanner="mcp_scanner",
+                file=str(config_file), line=1,
+                severity=Severity.INFO, dimension="D1",
+                message=(
+                    f"MCP server '{server_name}' discovered (tools loaded at runtime, "
+                    f"not statically analyzable)"
+                ),
+                remediation=(
+                    "Static analysis can only evaluate inline tool definitions. "
+                    "Consider adding tool definitions to the config for full governance scoring."
+                ),
+            ))
+
+        # Check for write tools without auth
         write_tools = [t for t in tools if isinstance(t, dict) and
                        any(w in str(t.get("name", "")).lower()
                            for w in ("write", "delete", "update", "create", "execute"))]
@@ -228,7 +261,7 @@ def _analyze_mcp_config(config_file: Path) -> tuple[list[Finding], list[McpToolI
                 severity=_severity_from_risk_tags(risk_tags),
             ))
 
-    return findings, mcp_tools
+    return findings, mcp_tools, server_count
 
 
 def _should_skip(filepath: Path) -> bool:

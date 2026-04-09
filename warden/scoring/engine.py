@@ -23,21 +23,69 @@ def normalize_score(raw_total: int) -> int:
     return round(raw_total / TOTAL_RAW_MAX * 100)
 
 
-def calculate_scores(raw_scores: dict[str, int]) -> tuple[dict[str, DimensionScore], int, ScoreLevel]:
+def _apply_finding_deductions(
+    raw_scores: dict[str, int],
+    findings: list,
+) -> dict[str, int]:
+    """Apply deductions based on CRITICAL/HIGH findings per dimension.
+
+    CRITICAL findings actively reduce dimension score (governance gaps
+    should penalize, not be ignored). HIGH findings have smaller impact.
+    """
+    from warden.models import Severity
+
+    adjusted = dict(raw_scores)
+
+    # Count CRITICAL and HIGH findings per dimension
+    crit_counts: dict[str, int] = {}
+    high_counts: dict[str, int] = {}
+    for f in findings:
+        if f.severity == Severity.CRITICAL:
+            crit_counts[f.dimension] = crit_counts.get(f.dimension, 0) + 1
+        elif f.severity == Severity.HIGH:
+            high_counts[f.dimension] = high_counts.get(f.dimension, 0) + 1
+
+    for dim in ALL_DIMENSIONS:
+        crits = crit_counts.get(dim.id, 0)
+        highs = high_counts.get(dim.id, 0)
+        if crits == 0 and highs == 0:
+            continue
+
+        current = adjusted.get(dim.id, 0)
+        # Each CRITICAL deducts 2 pts (capped so we don't go below 0)
+        # Each HIGH deducts 1 pt (capped at 3 total from HIGHs)
+        crit_penalty = min(crits * 2, current)
+        high_penalty = min(min(highs, 3), max(current - crit_penalty, 0))
+        adjusted[dim.id] = max(0, current - crit_penalty - high_penalty)
+
+    return adjusted
+
+
+def calculate_scores(
+    raw_scores: dict[str, int],
+    findings: list | None = None,
+) -> tuple[dict[str, DimensionScore], int, ScoreLevel]:
     """Calculate dimension scores and total from raw scores.
 
     Args:
         raw_scores: Dict mapping dimension ID (e.g. "D1") to raw score.
                     Missing dimensions default to 0.
+        findings: Optional list of Finding objects. If provided, CRITICAL/HIGH
+                  findings will deduct from dimension scores.
 
     Returns:
         Tuple of (dimension_scores dict, total_normalized, score_level).
     """
+    # Apply finding-based deductions before calculating final scores
+    effective_scores = raw_scores
+    if findings:
+        effective_scores = _apply_finding_deductions(raw_scores, findings)
+
     dimension_scores: dict[str, DimensionScore] = {}
     raw_total = 0
 
     for dim in ALL_DIMENSIONS:
-        raw = min(raw_scores.get(dim.id, 0), dim.max_score)  # Cap at max
+        raw = min(effective_scores.get(dim.id, 0), dim.max_score)  # Cap at max
         raw = max(raw, 0)  # Floor at 0
         dimension_scores[dim.id] = DimensionScore(
             name=dim.name,
@@ -54,4 +102,6 @@ def calculate_scores(raw_scores: dict[str, int]) -> tuple[dict[str, DimensionSco
 
 def apply_scores(result: ScanResult, raw_scores: dict[str, int]) -> None:
     """Apply calculated scores to a ScanResult in-place."""
-    result.dimension_scores, result.total_score, result.level = calculate_scores(raw_scores)
+    result.dimension_scores, result.total_score, result.level = calculate_scores(
+        raw_scores, findings=result.findings,
+    )

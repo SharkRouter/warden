@@ -12,6 +12,7 @@ class Severity(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+    INFO = "INFO"
 
 
 class ScoreLevel(str, Enum):

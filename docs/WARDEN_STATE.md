@@ -250,6 +250,117 @@ All tests run in < 2 seconds with `pytest-timeout=30`.
 
 ---
 
+## Competitor Detection
+
+Warden detects **17 governance and security tools** in the scanned project. Detection uses 5 signal layers:
+
+| Signal Layer | What It Checks |
+|-------------|----------------|
+| Environment variables | `PORTKEY_API_KEY`, `LAKERA_API_KEY`, etc. |
+| Packages | `sharkrouter-sdk`, `lakera-guard`, etc. in requirements/package.json |
+| Docker images | `sharkrouter/gateway`, `kong`, etc. in compose files |
+| Config files | `sharkrouter.yaml`, `.lakerarc`, etc. |
+| Code patterns | `base_url.*portkey`, `lakera.*guard`, etc. in source |
+
+**Detection threshold:** 2+ signals from different layers = "detected" (confidence: medium/high). Single-signal matches are confidence: "low" and are NOT shown in the report.
+
+### 17 Registered Vendors
+
+| ID | Display Name | Category |
+|----|-------------|----------|
+| sharkrouter | SharkRouter | Tool Call Gateway |
+| zenity | Zenity | AI Security Posture |
+| oasis | Oasis Security | NHI Lifecycle |
+| wiz | Wiz | Cloud Security |
+| portkey | Portkey | LLM Gateway |
+| lakera | Lakera | Prompt Security |
+| prompt_security | Prompt Security | Prompt Security |
+| pangea | Pangea / CrowdStrike | AI Guard |
+| noma | Noma Security | AI Security Posture |
+| kong | Kong | API Gateway |
+| knostic | Knostic | AI Access Control |
+| robust_intel | Robust Intelligence / Cisco | AI Validation |
+| cloudflare_ai_gw | Cloudflare AI Gateway / Envoy | LLM Gateway |
+| neuraltrust | NeuralTrust | AI Security |
+| lasso | Lasso / Intent Security | AI Security |
+| mcp_scan | mcp-scan / Snyk | Scanner |
+| aifwall | aiFWall | AI Firewall |
+| rubrik | Rubrik | Data Recovery |
+
+Each vendor has a `warden_score` (estimated score if fully deployed) and `strengths`/`weaknesses` for the HTML report's comparison table.
+
+### GTM Signal Routing
+
+When competitors are detected, `gtm/signals.py` maps them to sales actions:
+
+| Signal | Action | Priority |
+|--------|--------|----------|
+| `existing_customer` | Upsell | Low |
+| `warm_governance_aware` | Gap analysis ("can you BLOCK a tool call?") | High |
+| `warm_jit_aware` | Before/during/after pitch | High |
+| `warm_gateway_user` | Security upgrade ("routes vs governs") | Medium |
+| `warm_prompt_security` | Layer completion ("prompt → tool call") | High |
+| `warm_cloud_security` | Runtime gap pitch | Medium |
+| `warm_scanner_user` | Runtime upgrade | Medium |
+
+GTM data is included in the email form payload (opt-in) — never sent automatically.
+
+---
+
+## Secret Patterns
+
+16 patterns with severity classification:
+
+| Pattern | Severity | Regex Summary |
+|---------|----------|--------------|
+| OpenAI API Key | CRITICAL | `sk-[a-zA-Z0-9]{20,}` |
+| Anthropic API Key | CRITICAL | `sk-ant-[a-zA-Z0-9\-]{20,}` |
+| Google API Key | CRITICAL | `AIza[0-9A-Za-z\-_]{35}` |
+| AWS Access Key | CRITICAL | `AKIA[0-9A-Z]{16}` |
+| AWS Secret Key | HIGH | `aws_secret.*=.*[40 chars]` |
+| GitHub Token | HIGH | `gh[ps]_[A-Za-z0-9_]{36,}` |
+| Groq API Key | CRITICAL | `gsk_[a-zA-Z0-9]{20,}` |
+| HuggingFace Token | HIGH | `hf_[a-zA-Z0-9]{20,}` |
+| Slack Token | HIGH | `xox[bpors]-[0-9a-zA-Z\-]+` |
+| DB URL (with creds) | CRITICAL | `postgres://user:pass@host` |
+| DB URL (no creds) | MEDIUM | `redis://host:6379` (no password) |
+| Private Key | CRITICAL | `-----BEGIN RSA PRIVATE KEY-----` |
+| JWT Secret | HIGH | `jwt_secret=...` |
+| Stripe Key | CRITICAL | `sk_live_[0-9a-zA-Z]{24,}` |
+| SendGrid Key | HIGH | `SG.[22 chars].[43 chars]` |
+| Generic Secret | MEDIUM | `password=..., token=..., api_key=...` |
+
+### False Positive Filters
+
+- **Regex definition filter:** lines containing `re.compile`, `Pattern(`, `SecretPattern(`, `\S+`, `[^`, etc. are excluded
+- **SKIP_DIRS:** `.venv`, `node_modules`, `worktrees`, etc. never scanned
+- **DB URL split:** credentials in URL = CRITICAL; bare connection string = MEDIUM
+
+---
+
+## CI/CD Pipeline
+
+Two GitHub Actions workflows:
+
+### `ci.yml` — Runs on every push/PR to main
+
+| Job | What It Does |
+|-----|--------------|
+| `test` | Matrix: 3 OS (ubuntu/windows/macos) × 4 Python (3.10-3.13) = 12 runs |
+| `lint` | `ruff check warden/` on ubuntu with Python 3.12 |
+| `self-scan` | Warden scans its own codebase, uploads report as artifact |
+
+### `publish.yml` — Runs on `v*` tag push
+
+| Job | What It Does |
+|-----|--------------|
+| `build` | Install, test, `uv build`, upload dist artifact |
+| `publish` | Download artifact, `uv publish` with trusted publishing (OIDC, no API token) |
+
+**Trusted publishing:** PyPI configured with GitHub Actions OIDC — no stored secrets. Tag `v1.5.3` → automatic build + test + publish.
+
+---
+
 ## Version History
 
 | Version | Scoring Model | Key Changes |

@@ -124,6 +124,7 @@ The HTML report is fully self-contained (no CDN, no external fonts, no network r
 - **Governance detection** — which governance layers were found in your codebase
 - **Recommendations** — prioritized remediation steps mapped to compliance frameworks
 - **Comparison card** — side-by-side score projection with biggest gap dimensions
+- **Competitor detection** — identifies 17 governance/security tools in your codebase (shown only when detected, requires 2+ signals)
 - **Email form** — optional report delivery (score metadata only, never source code or secrets)
 
 ## Output Formats

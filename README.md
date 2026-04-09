@@ -66,6 +66,17 @@ warden scan . --only code,mcp,cloud
 warden scan . --ci                    # 0=governed, 1=partial, 2=at_risk, 3=ungoverned
 warden scan . --min-score 60          # exit 1 if score < 60
 
+# Baseline: track only new findings (brownfield adoption)
+warden baseline .                     # saves .warden-baseline.json
+warden scan . --baseline .warden-baseline.json  # shows only NEW findings
+
+# Compare two reports
+warden diff before.json after.json    # score delta, new/resolved findings
+
+# Auto-fix common findings
+warden fix . --dry-run                # preview fixes
+warden fix .                          # apply fixes
+
 # View the scoring methodology
 warden methodology
 

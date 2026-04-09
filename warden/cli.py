@@ -70,10 +70,12 @@ LAYER_NAMES = {
               help="CI mode: exit code reflects governance level (0=governed, 1=partial, 2=at_risk, 3=ungoverned)")
 @click.option("--min-score", type=int, default=None,
               help="Fail (exit 1) if score is below this threshold (implies --ci)")
+@click.option("--baseline", "baseline_path", type=click.Path(exists=True), default=None,
+              help="Baseline file — only show NEW findings not in the baseline")
 def scan(
     path: str, output_format: str, output_dir: str | None,
     skip_layers: str | None, only_layers: str | None,
-    ci: bool, min_score: int | None,
+    ci: bool, min_score: int | None, baseline_path: str | None,
 ) -> None:
     """Scan a project for AI agent governance posture."""
     target = Path(path).resolve()
@@ -283,8 +285,28 @@ def scan(
             console.print(f"\n  Governance tools detected: [bright_cyan]{names}[/bright_cyan]")
     console.print("  Competitors in registry: 17")
 
-    # Apply scores
+    # Apply scores (always based on full scan, not filtered by baseline)
     apply_scores(result, raw_scores)
+
+    # Baseline filtering — suppress known findings from reports
+    baseline_suppressed = 0
+    if baseline_path:
+        import json as _json
+
+        try:
+            baseline_data = _json.loads(Path(baseline_path).read_text(encoding="utf-8"))
+            baseline_keys = {
+                (f.get("file", ""), f.get("message", ""), f.get("dimension", ""))
+                for f in baseline_data.get("findings", [])
+            }
+            original_count = len(result.findings)
+            result.findings = [
+                f for f in result.findings
+                if (f.file, f.message, f.dimension) not in baseline_keys
+            ]
+            baseline_suppressed = original_count - len(result.findings)
+        except (OSError, _json.JSONDecodeError, KeyError):
+            console.print("[yellow]  Warning: could not read baseline file, showing all findings[/yellow]")
 
     elapsed = time.monotonic() - start
     console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
@@ -301,6 +323,13 @@ def scan(
         f"  GOVERNANCE SCORE: [{score_color}]{result.total_score} / 100 "
         f"-- {level}[/{score_color}]"
     )
+
+    if baseline_suppressed:
+        new_count = len(result.findings)
+        console.print(
+            f"  [dim]Baseline: {baseline_suppressed} known findings suppressed, "
+            f"[bold]{new_count} new[/bold] finding(s) shown[/dim]"
+        )
 
     # D17 warning when score is 0
     d17 = result.dimension_scores.get("D17")
@@ -738,6 +767,39 @@ def _run_scan(target: Path, skip_layers: str | None = None, only_layers: str | N
     # Apply scores
     apply_scores(result, raw_scores)
     return result
+
+
+@cli.command()
+@click.argument("path", type=click.Path(exists=True), default=".")
+@click.option("--output", "-o", "output_file", default=".warden-baseline.json",
+              help="Baseline output file (default: .warden-baseline.json)")
+def baseline(path: str, output_file: str) -> None:
+    """Save current findings as a baseline for future scans.
+
+    Subsequent scans can use --baseline to show only NEW findings.
+
+    Example:
+        warden baseline .                    # saves .warden-baseline.json
+        warden scan . --baseline .warden-baseline.json  # shows only new findings
+    """
+    target = Path(path).resolve()
+    out_path = Path(output_file)
+
+    console.print(f"[bold]Warden Baseline[/bold] -- scanning {target}")
+
+    with console.status("[bright_cyan]Running full scan...[/bright_cyan]"):
+        result = _run_scan(target)
+
+    from warden.report.json_writer import write_json_report
+
+    write_json_report(result, out_path)
+
+    finding_count = len(result.findings)
+    console.print(f"  Score: [bold]{result.total_score}/100[/bold] ({result.level.value})")
+    console.print(f"  Findings: {finding_count}")
+    console.print(f"  Baseline saved: [bold bright_cyan]{out_path}[/bold bright_cyan]")
+    console.print()
+    console.print("  [dim]Use with: warden scan . --baseline .warden-baseline.json[/dim]")
 
 
 def main() -> None:

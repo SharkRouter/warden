@@ -41,9 +41,14 @@ SECRET_PATTERNS = [
     SecretPattern("HuggingFace Token",   r"hf_[a-zA-Z0-9]{20,}",                           "HIGH"),
     SecretPattern("Slack Token",         r"xox[bpors]-[0-9a-zA-Z\-]+",                     "HIGH"),
     SecretPattern(
-        "Database URL",
-        r"(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^\s\"']+",
+        "Database URL with credentials",
+        r"(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^:/@\s]+:[^/@\s]+@[^\s\"']+",
         "CRITICAL",
+    ),
+    SecretPattern(
+        "Database URL (no credentials)",
+        r"(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://(?![^:/@\s]+:[^/@\s]+@)[^\s\"']+",
+        "MEDIUM",
     ),
     SecretPattern("Private Key",         r"-----BEGIN (?:RSA|EC|OPENSSH) PRIVATE KEY-----", "CRITICAL"),
     SecretPattern("JWT Secret",          r"(?:jwt[_\-]?secret|JWT_SECRET)\s*[=:]\s*['\"][^'\"]+", "HIGH"),
@@ -151,6 +156,24 @@ def _iter_scannable_files(target: Path) -> list[Path]:
     return files
 
 
+def _is_regex_definition(line: str, matched_value: str) -> bool:
+    """Check if a matched value appears inside a regex pattern definition.
+
+    Catches cases like:  r"postgres://\\S+"  or  re.compile("redis://.*")
+    which are pattern definitions for detecting DB URLs, not actual secrets.
+    """
+    # Common indicators the line is defining a regex, not containing a secret
+    regex_indicators = [
+        r"\S+", r"\s+", r"[^", r".*", r".+", r"(?:", r"\w+",
+        "re.compile", "re.search", "re.match", "re.findall",
+        "Pattern(", "SecretPattern(",
+    ]
+    for indicator in regex_indicators:
+        if indicator in line:
+            return True
+    return False
+
+
 def _scan_file(filepath: Path) -> tuple[list[Finding], list[SecretMatch]]:
     """Scan a single file for secrets."""
     findings: list[Finding] = []
@@ -176,6 +199,10 @@ def _scan_file(filepath: Path) -> tuple[list[Finding], list[SecretMatch]]:
             match = pattern.regex.search(line)
             if match:
                 matched_value = match.group(0)
+                # Skip regex pattern definitions (contain regex metacharacters
+                # around the matched value — these define detection rules, not secrets)
+                if _is_regex_definition(line, matched_value):
+                    continue
                 preview = _mask_secret(matched_value)
 
                 secret = SecretMatch(

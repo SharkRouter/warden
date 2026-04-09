@@ -52,11 +52,18 @@ def _apply_finding_deductions(
             continue
 
         current = adjusted.get(dim.id, 0)
-        # Each CRITICAL deducts 2 pts (capped so we don't go below 0)
-        # Each HIGH deducts 1 pt (capped at 3 total from HIGHs)
-        crit_penalty = min(crits * 2, current)
-        high_penalty = min(min(highs, 3), max(current - crit_penalty, 0))
-        adjusted[dim.id] = max(0, current - crit_penalty - high_penalty)
+        if current == 0:
+            continue
+
+        # Deductions are capped at 60% of earned score — even a project with
+        # many CRITICALs keeps partial credit for governance signals it earned.
+        max_penalty = int(current * 0.6)
+
+        # Each CRITICAL deducts 2 pts, each HIGH deducts 1 pt (HIGHs capped at 3)
+        crit_penalty = min(crits * 2, max_penalty)
+        remaining_budget = max(max_penalty - crit_penalty, 0)
+        high_penalty = min(min(highs, 3), remaining_budget)
+        adjusted[dim.id] = current - crit_penalty - high_penalty
 
     return adjusted
 

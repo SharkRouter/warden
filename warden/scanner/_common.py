@@ -15,8 +15,8 @@ SKIP_DIRS: frozenset[str] = frozenset({
     # JavaScript: installed packages & framework caches
     "node_modules", ".next", ".nuxt", ".output",
     "bower_components", ".parcel-cache", ".turbo",
-    # IDE / editor metadata
-    ".idea", ".vscode", ".vs",
+    # IDE / editor metadata & agent worktrees
+    ".idea", ".vscode", ".vs", "worktrees",
     # Rust / Java build output (compiled bytecode, never source)
     "target",
     # Coverage tool output

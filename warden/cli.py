@@ -169,6 +169,21 @@ def scan(
     if other_count:
         found_parts.append(f"{other_count} Go/Rust/Java")
     console.print(f"  Found: {', '.join(found_parts)} files")
+
+    # Coverage warning: if no files in any supported language were found,
+    # the score reflects scanner blind spots, not governance gaps. Warn
+    # loudly so users don't read "2/100 UNGOVERNED" as a verdict on their
+    # actual posture. Known blind spots as of v1.5.6: C#/.NET, Ruby, PHP,
+    # Kotlin, Swift.
+    total_scannable = py_count + js_count + other_count
+    if total_scannable == 0:
+        console.print(
+            "  [yellow]WARNING:[/yellow] No files in a supported language "
+            "were found (Python/JS/TS/Go/Rust/Java). Warden will still run, "
+            "but findings will reflect scanner coverage limits, not your "
+            "governance posture. C#/.NET, Ruby, PHP, Kotlin, and Swift are "
+            "not yet supported."
+        )
     console.print("[bright_blue]" + "-" * 50 + "[/bright_blue]")
 
     import warnings
@@ -352,7 +367,9 @@ def scan(
         names = ", ".join(c.display_name for c in competitors if c.confidence != "low")
         if names:
             console.print(f"\n  Governance tools detected: [bright_cyan]{names}[/bright_cyan]")
-    console.print("  Competitors in registry: 17")
+    # Count dynamically so this stays correct when new vendors are added.
+    from warden.scanner.competitors import COMPETITORS
+    console.print(f"  Competitors in registry: {len(COMPETITORS)}")
 
     # Apply scores (always based on full scan, not filtered by baseline)
     apply_scores(result, raw_scores)
@@ -517,7 +534,7 @@ def methodology() -> None:
 
 @cli.command()
 def leaderboard() -> None:
-    """Show the market comparison table (17 vendors x 17 dimensions)."""
+    """Show the market comparison table (20 vendors x 17 dimensions)."""
     click.echo(f"Warden Market Leaderboard -- Scoring Model v{__scoring_model__}")
     click.echo()
 
@@ -528,7 +545,9 @@ def leaderboard() -> None:
         ("Oasis Security",   42, "NHI access"),
         ("Wiz",              41, "Cloud AI-SPM"),
         ("Noma Security",    40, "Runtime block"),
+        ("HiddenLayer",      34, "MLDR + scan"),
         ("Portkey",          32, "MCP gateway"),
+        ("Protect AI / PAN", 32, "Model scan"),
         ("Lasso",            30, "Agent monitor"),
         ("Kong",             27, "API gateway"),
         ("Robust / Cisco",   26, "AI firewall"),

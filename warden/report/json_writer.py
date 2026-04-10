@@ -18,6 +18,13 @@ def write_json_report(result: ScanResult, output_path: Path) -> None:
         "scoring_version": __scoring_model__,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "target_path": result.target_path,
+        "file_counts": result.file_counts,
+        # True when zero files in a supported language were indexed. Downstream
+        # tools should treat the score as a coverage failure, not a governance
+        # verdict, when this flag is set.
+        "coverage_warning": (
+            sum(result.file_counts.values()) == 0 if result.file_counts else False
+        ),
         "score": {
             "total": result.total_score,
             "max": 100,

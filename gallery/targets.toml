@@ -1,0 +1,104 @@
+# Warden Gallery — Target Projects
+#
+# Popular open-source AI agent frameworks and orchestration platforms.
+# Each entry gets scanned by `warden scan` and gets a dedicated landing
+# page in the gallery site.
+#
+# Selection criteria:
+#   - High GitHub stars (>5k) → real people search for these
+#   - Active development in the last 6 months
+#   - Reasonable scan size (< 5 minutes on a modest machine)
+#   - Represents a distinct category (framework / orchestrator / low-code / agent)
+#
+# To add a target: append a new [[target]] block. The `slug` is used as
+# the URL path segment and must be lowercase + hyphen-safe.
+#
+# Respect license + attribution: every report links back to the source repo
+# and the Warden methodology page, and is clearly marked as an automated scan.
+
+[[target]]
+slug = "langchain"
+name = "LangChain"
+repo = "langchain-ai/langchain"
+category = "Framework"
+description = "The most-starred framework for building LLM applications with chains, agents, and tools."
+# LangChain monorepo is huge; scan the core package only to keep it under 5 min.
+scan_path = "libs/langchain"
+homepage = "https://www.langchain.com/"
+
+[[target]]
+slug = "langgraph"
+name = "LangGraph"
+repo = "langchain-ai/langgraph"
+category = "Orchestrator"
+description = "Graph-based orchestration for multi-agent LLM workflows by the LangChain team."
+scan_path = "libs/langgraph"
+homepage = "https://langchain-ai.github.io/langgraph/"
+
+[[target]]
+slug = "crewai"
+name = "CrewAI"
+repo = "crewAIInc/crewAI"
+category = "Multi-Agent"
+description = "Framework for orchestrating role-playing autonomous AI agents that collaborate on tasks."
+homepage = "https://www.crewai.com/"
+
+[[target]]
+slug = "autogen"
+name = "AutoGen"
+repo = "microsoft/autogen"
+category = "Multi-Agent"
+description = "Microsoft's framework for building multi-agent conversational AI applications."
+scan_path = "python/packages/autogen-core"
+homepage = "https://microsoft.github.io/autogen/"
+
+[[target]]
+slug = "haystack"
+name = "Haystack"
+repo = "deepset-ai/haystack"
+category = "RAG"
+description = "End-to-end framework for building production-ready LLM and RAG applications."
+homepage = "https://haystack.deepset.ai/"
+
+[[target]]
+slug = "llamaindex"
+name = "LlamaIndex"
+repo = "run-llama/llama_index"
+category = "RAG"
+description = "Data framework for connecting custom data sources to LLMs, the standard for RAG pipelines."
+scan_path = "llama-index-core"
+homepage = "https://www.llamaindex.ai/"
+
+[[target]]
+slug = "semantic-kernel"
+name = "Semantic Kernel"
+repo = "microsoft/semantic-kernel"
+category = "Framework"
+description = "Microsoft's open-source SDK for integrating LLMs into conventional applications."
+scan_path = "python"
+homepage = "https://learn.microsoft.com/semantic-kernel/"
+
+[[target]]
+slug = "pydantic-ai"
+name = "PydanticAI"
+repo = "pydantic/pydantic-ai"
+category = "Framework"
+description = "Agent framework from the Pydantic team, designed for type-safe LLM applications."
+homepage = "https://ai.pydantic.dev/"
+
+[[target]]
+slug = "metagpt"
+name = "MetaGPT"
+repo = "geekan/MetaGPT"
+category = "Multi-Agent"
+description = "Multi-agent framework that assigns different roles to GPT agents to collaborate on complex tasks."
+homepage = "https://www.deepwisdom.ai/"
+
+[[target]]
+slug = "langflow"
+name = "Langflow"
+repo = "langflow-ai/langflow"
+category = "Low-Code"
+description = "Visual low-code tool for building and deploying AI agents and workflows."
+scan_path = "src/backend/base"
+homepage = "https://www.langflow.org/"

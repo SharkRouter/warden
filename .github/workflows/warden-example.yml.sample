@@ -1,0 +1,44 @@
+# Sample workflow showing how to consume the Warden action from other repos.
+# Copy to `.github/workflows/warden.yml` in your project and commit.
+
+name: Warden governance scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write   # required so SARIF uploads to Code Scanning
+  actions: read
+
+jobs:
+  warden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Warden governance scan
+        id: warden
+        uses: SharkRouter/warden@v1
+        with:
+          path: .
+          format: all
+          # Uncomment one of the gates below to fail the build on regressions:
+          # min-score: 60
+          # fail-on-level: at_risk
+
+      - name: Publish HTML report as artifact
+        if: steps.warden.outputs.report-html != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: warden-report
+          path: ${{ steps.warden.outputs.report-html }}
+
+      - name: Print score summary
+        run: |
+          echo "Score: ${{ steps.warden.outputs.score }} / 100"
+          echo "Level: ${{ steps.warden.outputs.level }}"
+          echo "Findings: ${{ steps.warden.outputs.findings-count }} (${{ steps.warden.outputs.critical-count }} critical)"

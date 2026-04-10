@@ -206,11 +206,22 @@ Self-contained, dark-theme, neon-accented report. No external requests — works
 
 ```json
 {
-  "scoring_version": "4.3",
   "version": "1.5.6",
-  "score": { "normalized": 70, "raw": 165, "raw_max": 235, "level": "PARTIAL", "dimensions": [...] },
-  "findings": [...],
-  "trap_defense": { "deepmind_citation": "...", "checks": [...] }
+  "scoring_model": "v4.3",
+  "scoring_version": "4.3",
+  "score": {
+    "total": 70,
+    "max": 100,
+    "level": "PARTIAL",
+    "raw_total": 164,
+    "raw_max": 235,
+    "dimensions": { "D1": { "name": "...", "raw": 18, "max": 25, "pct": 72 }, "...": {} }
+  },
+  "findings": [
+    { "layer": "Code Patterns", "severity": "CRITICAL", "dimension": "D4", "file": "app.py", "line": 12, "message": "...", "remediation": "..." }
+  ],
+  "competitors_detected": [],
+  "trap_defense": { "deepmind_citation": "...", "content_injection": {}, "rag_poisoning": {} }
 }
 ```
 

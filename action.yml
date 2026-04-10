@@ -1,0 +1,257 @@
+name: Warden AI Governance Scan
+description: >-
+  Scan your repository for AI agent governance posture. 12 scan layers, 17
+  scoring dimensions, zero network calls. Publishes findings to GitHub Code
+  Scanning via SARIF.
+author: SharkRouter
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: Directory to scan.
+    required: false
+    default: .
+  format:
+    description: >-
+      Output format — `json`, `html`, `sarif`, or `all`. Defaults to `all` so
+      you get SARIF for Code Scanning plus JSON for scripting.
+    required: false
+    default: all
+  output-dir:
+    description: Directory where warden writes report files.
+    required: false
+    default: .
+  skip:
+    description: Comma-separated layers to skip (e.g. `secrets,deps`).
+    required: false
+    default: ''
+  only:
+    description: Comma-separated layers to run exclusively (e.g. `code,mcp`).
+    required: false
+    default: ''
+  baseline:
+    description: >-
+      Path to a baseline JSON report. When set, only NEW findings surface in
+      the generated report — useful for brownfield adoption.
+    required: false
+    default: ''
+  min-score:
+    description: >-
+      Fail the job if the normalized score is below this threshold (0-100).
+      Leave empty to rely on `fail-on-level` or a non-failing audit run.
+    required: false
+    default: ''
+  fail-on-level:
+    description: >-
+      Fail the job when the posture level is at or below this value. One of
+      `governed`, `partial`, `at_risk`, `ungoverned`. Leave empty to disable.
+      Ignored if `min-score` is set.
+    required: false
+    default: ''
+  upload-sarif:
+    description: >-
+      Upload the SARIF report to GitHub Code Scanning. Requires `security-events:
+      write` permission on the workflow. Set to `false` to skip.
+    required: false
+    default: 'true'
+  sarif-category:
+    description: Category for the Code Scanning upload (groups runs in the UI).
+    required: false
+    default: warden
+  warden-version:
+    description: >-
+      Pin a specific `warden-ai` release (e.g. `1.5.6`). Defaults to the latest
+      published version.
+    required: false
+    default: ''
+  python-version:
+    description: Python version to install for the runner.
+    required: false
+    default: '3.12'
+
+outputs:
+  score:
+    description: Normalized governance score (0-100).
+    value: ${{ steps.parse.outputs.score }}
+  raw-score:
+    description: Raw score out of 235.
+    value: ${{ steps.parse.outputs.raw_score }}
+  level:
+    description: Posture level — GOVERNED / PARTIAL / AT_RISK / UNGOVERNED.
+    value: ${{ steps.parse.outputs.level }}
+  findings-count:
+    description: Total number of findings surfaced in the report.
+    value: ${{ steps.parse.outputs.findings_count }}
+  critical-count:
+    description: Number of CRITICAL findings.
+    value: ${{ steps.parse.outputs.critical_count }}
+  report-json:
+    description: Absolute path to the generated JSON report.
+    value: ${{ steps.parse.outputs.report_json }}
+  report-html:
+    description: Absolute path to the generated HTML report (empty if not produced).
+    value: ${{ steps.parse.outputs.report_html }}
+  report-sarif:
+    description: Absolute path to the generated SARIF report (empty if not produced).
+    value: ${{ steps.parse.outputs.report_sarif }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install warden-ai
+      shell: bash
+      env:
+        WARDEN_VERSION: ${{ inputs.warden-version }}
+      run: |
+        set -euo pipefail
+        if [ -n "$WARDEN_VERSION" ]; then
+          python -m pip install --disable-pip-version-check "warden-ai==${WARDEN_VERSION}"
+        else
+          python -m pip install --disable-pip-version-check warden-ai
+        fi
+        warden --version || python -c "import warden; print('warden', warden.__version__)"
+
+    - name: Run warden scan
+      id: scan
+      shell: bash
+      env:
+        WARDEN_PATH: ${{ inputs.path }}
+        WARDEN_FORMAT: ${{ inputs.format }}
+        WARDEN_OUTPUT_DIR: ${{ inputs.output-dir }}
+        WARDEN_SKIP: ${{ inputs.skip }}
+        WARDEN_ONLY: ${{ inputs.only }}
+        WARDEN_BASELINE: ${{ inputs.baseline }}
+        WARDEN_MIN_SCORE: ${{ inputs.min-score }}
+        WARDEN_FAIL_ON_LEVEL: ${{ inputs.fail-on-level }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$WARDEN_OUTPUT_DIR"
+
+        args=(scan "$WARDEN_PATH" --format "$WARDEN_FORMAT" --output-dir "$WARDEN_OUTPUT_DIR")
+        if [ -n "$WARDEN_SKIP" ]; then
+          args+=(--skip "$WARDEN_SKIP")
+        fi
+        if [ -n "$WARDEN_ONLY" ]; then
+          args+=(--only "$WARDEN_ONLY")
+        fi
+        if [ -n "$WARDEN_BASELINE" ]; then
+          args+=(--baseline "$WARDEN_BASELINE")
+        fi
+
+        # Decide how to gate the job
+        if [ -n "$WARDEN_MIN_SCORE" ]; then
+          args+=(--min-score "$WARDEN_MIN_SCORE")
+          echo "gate=min-score" >> "$GITHUB_OUTPUT"
+        elif [ -n "$WARDEN_FAIL_ON_LEVEL" ]; then
+          echo "gate=fail-on-level" >> "$GITHUB_OUTPUT"
+        else
+          echo "gate=none" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Always run. Capture exit so we can still parse reports on failure.
+        set +e
+        warden "${args[@]}"
+        scan_exit=$?
+        set -e
+        echo "scan_exit=$scan_exit" >> "$GITHUB_OUTPUT"
+
+    - name: Parse report and set outputs
+      id: parse
+      shell: bash
+      env:
+        WARDEN_FORMAT: ${{ inputs.format }}
+        WARDEN_OUTPUT_DIR: ${{ inputs.output-dir }}
+        WARDEN_FAIL_ON_LEVEL: ${{ inputs.fail-on-level }}
+        SCAN_EXIT: ${{ steps.scan.outputs.scan_exit }}
+        GATE: ${{ steps.scan.outputs.gate }}
+      run: |
+        set -euo pipefail
+        out_dir=$(cd "$WARDEN_OUTPUT_DIR" && pwd)
+
+        json_report="$out_dir/warden_report.json"
+        html_report="$out_dir/warden_report.html"
+        sarif_report="$out_dir/warden_report.sarif"
+
+        if [ ! -f "$json_report" ]; then
+          echo "::warning::warden did not produce $json_report — outputs will be empty"
+          echo "score=" >> "$GITHUB_OUTPUT"
+          echo "raw_score=" >> "$GITHUB_OUTPUT"
+          echo "level=" >> "$GITHUB_OUTPUT"
+          echo "findings_count=0" >> "$GITHUB_OUTPUT"
+          echo "critical_count=0" >> "$GITHUB_OUTPUT"
+        else
+          score=$(python -c "import json; d=json.load(open('$json_report',encoding='utf-8')); print(d['score'].get('total',''))")
+          raw=$(python -c "import json; d=json.load(open('$json_report',encoding='utf-8')); print(d['score'].get('raw_total',''))")
+          level=$(python -c "import json; d=json.load(open('$json_report',encoding='utf-8')); print(d['score'].get('level',''))")
+          fcount=$(python -c "import json; d=json.load(open('$json_report',encoding='utf-8')); print(len(d.get('findings',[])))")
+          ccount=$(python -c "import json; d=json.load(open('$json_report',encoding='utf-8')); print(sum(1 for f in d.get('findings',[]) if f.get('severity')=='CRITICAL'))")
+          echo "score=$score" >> "$GITHUB_OUTPUT"
+          echo "raw_score=$raw" >> "$GITHUB_OUTPUT"
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "findings_count=$fcount" >> "$GITHUB_OUTPUT"
+          echo "critical_count=$ccount" >> "$GITHUB_OUTPUT"
+          echo "## Warden governance report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Score | **$score / 100** ($raw / 235 raw) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Level | **$level** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Findings | $fcount ($ccount CRITICAL) |" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        [ -f "$json_report" ]  && echo "report_json=$json_report"   >> "$GITHUB_OUTPUT" || echo "report_json="   >> "$GITHUB_OUTPUT"
+        [ -f "$html_report" ]  && echo "report_html=$html_report"   >> "$GITHUB_OUTPUT" || echo "report_html="   >> "$GITHUB_OUTPUT"
+        [ -f "$sarif_report" ] && echo "report_sarif=$sarif_report" >> "$GITHUB_OUTPUT" || echo "report_sarif=" >> "$GITHUB_OUTPUT"
+
+        # Honor the --ci/--min-score exit code from warden first
+        if [ "$GATE" = "min-score" ]; then
+          if [ "$SCAN_EXIT" != "0" ]; then
+            echo "::error::warden scan failed min-score gate (exit $SCAN_EXIT)"
+            exit "$SCAN_EXIT"
+          fi
+          exit 0
+        fi
+
+        # Implement fail-on-level in the action (warden has no equivalent flag)
+        if [ "$GATE" = "fail-on-level" ] && [ -f "$json_report" ]; then
+          level_lc=$(echo "${level:-}" | tr '[:upper:]' '[:lower:]')
+          thresh=$(echo "$WARDEN_FAIL_ON_LEVEL" | tr '[:upper:]' '[:lower:]')
+          # rank: governed=3, partial=2, at_risk=1, ungoverned=0
+          rank() {
+            case "$1" in
+              governed)   echo 3 ;;
+              partial)    echo 2 ;;
+              at_risk)    echo 1 ;;
+              ungoverned) echo 0 ;;
+              *)          echo -1 ;;
+            esac
+          }
+          lrank=$(rank "$level_lc")
+          trank=$(rank "$thresh")
+          if [ "$trank" -lt 0 ]; then
+            echo "::warning::unknown fail-on-level '$WARDEN_FAIL_ON_LEVEL' — ignoring"
+            exit 0
+          fi
+          if [ "$lrank" -le "$trank" ]; then
+            echo "::error::warden posture is $level (fail-on-level=$WARDEN_FAIL_ON_LEVEL)"
+            exit 1
+          fi
+          exit 0
+        fi
+
+        # No gate — propagate scan exit without failing the job
+        exit 0
+
+    - name: Upload SARIF to GitHub Code Scanning
+      if: ${{ inputs.upload-sarif == 'true' && steps.parse.outputs.report_sarif != '' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.parse.outputs.report_sarif }}
+        category: ${{ inputs.sarif-category }}

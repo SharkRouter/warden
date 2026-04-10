@@ -84,6 +84,39 @@ warden methodology
 warden leaderboard
 ```
 
+### GitHub Action
+
+Warden ships as a GitHub Action so every push and PR scores governance posture and publishes findings to Code Scanning.
+
+```yaml
+# .github/workflows/warden.yml
+name: Warden governance scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write   # required for SARIF upload
+
+jobs:
+  warden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SharkRouter/warden@v1
+        with:
+          path: .
+          # Optional gates:
+          # min-score: 60          # fail the build if score < 60
+          # fail-on-level: at_risk # fail if posture is AT_RISK or worse
+```
+
+Key action inputs: `path`, `format` (`json`/`html`/`sarif`/`all`), `min-score`, `fail-on-level`, `skip`, `only`, `baseline`, `upload-sarif`, `warden-version`, `python-version`. Outputs: `score`, `raw-score`, `level`, `findings-count`, `critical-count`, `report-json`, `report-html`, `report-sarif`. See [action.yml](action.yml) for the full interface and [.github/workflows/warden-example.yml.sample](.github/workflows/warden-example.yml.sample) for a full example workflow.
+
 ### Layer Keys for --skip / --only
 
 | Key | Layer |

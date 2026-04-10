@@ -84,6 +84,32 @@ warden methodology
 warden leaderboard
 ```
 
+### Config File (`.warden.toml`)
+
+Warden reads project-level defaults from `.warden.toml` or a `[tool.warden]` table in `pyproject.toml`. Values apply when the matching CLI flag is left at its default — explicit flags always win.
+
+```toml
+# .warden.toml — checked into your repo
+format = "all"
+output_dir = "reports"
+skip = ["secrets", "deps"]
+only = []
+min_score = 60
+baseline = ".warden-baseline.json"
+ci = true
+```
+
+Or alongside other tooling in `pyproject.toml`:
+
+```toml
+[tool.warden]
+format = "sarif"
+min_score = 70
+skip = ["multilang"]
+```
+
+Warden searches upward from the scan path until it finds a config file or hits a VCS root (`.git`, `.hg`, `.svn`). Paths like `output_dir` and `baseline` are resolved relative to the config file. Pass `--no-config` to ignore any discovered config.
+
 ### GitHub Action
 
 Warden ships as a GitHub Action so every push and PR scores governance posture and publishes findings to Code Scanning.

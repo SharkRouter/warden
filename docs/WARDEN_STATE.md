@@ -16,12 +16,12 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 |--------|-------|
 | Total source lines | ~7,200 |
 | Test lines | ~1,230 |
-| Tests passing | 102 |
+| Tests passing | 113 |
 | Scanner modules | 14 |
 | Scoring dimensions | 17 |
 | Scan layers | 12 |
 | Raw max score | 235 |
-| Runtime dependencies | 2 (click, rich) |
+| Runtime dependencies | 2 (click, rich) + `tomli` on Python 3.10 only (stdlib `tomllib` on 3.11+) |
 | Dev dependencies | 2 (pytest, pytest-timeout) |
 
 ---
@@ -34,7 +34,8 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 |------|-------|---------|
 | `warden/__init__.py` | 8 | Version (`1.5.6`) and scoring model (`4.3`) |
 | `warden/__main__.py` | — | `python -m warden` entry point |
-| `warden/cli.py` | ~900 | Click CLI — `scan`, `methodology`, `leaderboard`, `baseline`, `diff`, `fix` commands. Orchestrates all layers (parallel), aggregates scores, writes reports |
+| `warden/cli.py` | ~950 | Click CLI — `scan`, `methodology`, `leaderboard`, `baseline`, `diff`, `fix` commands. Orchestrates all layers (parallel), aggregates scores, writes reports. Merges `.warden.toml` defaults |
+| `warden/config.py` | 140 | `.warden.toml` / `[tool.warden]` config loader with upward search, VCS-root stop, and unknown-key warnings |
 | `warden/models.py` | 124 | Data models: `Finding`, `ScanResult`, `McpToolInfo`, `ComplianceMapping`, `Severity` enum |
 
 ### Scanners (`warden/scanner/`)
@@ -243,6 +244,7 @@ GitHub Code Scanning compatible. Each finding becomes a SARIF `result` with `rul
 | `warden scan <path> --ci` | CI mode — exit 0 GOVERNED, 1 PARTIAL, 2 AT_RISK, 3 UNGOVERNED |
 | `warden scan <path> --min-score 60` | Fail CI if normalized score is below threshold |
 | `warden scan <path> --baseline .warden-baseline.json` | Show only NEW findings not in baseline |
+| `warden scan <path> --no-config` | Ignore any `.warden.toml` / `[tool.warden]` discovered from the scan path |
 | `warden baseline <path>` | Save current findings as `.warden-baseline.json` for brownfield adoption |
 | `warden diff <old.json> <new.json>` | Compare two JSON reports — score delta + new/resolved findings |
 | `warden fix <path>` | Auto-remediate `.gitignore`, dependency pinning, Dockerfile `USER` |

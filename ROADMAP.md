@@ -25,6 +25,8 @@ Status tags:
 - **`warden baseline`** — save findings, subsequent scans only show new ones (brownfield adoption)
 - **`warden diff`** — compare two JSON reports, show score delta + new/resolved findings
 - **`warden fix`** — auto-remediation for .gitignore, dep pinning, Dockerfile USER
+- **`.warden.toml` / `[tool.warden]` config** — project-level defaults for format, skip, only, min_score, baseline, output_dir, ci. CLI flags override. Discovered by walking upward from the scan path until a VCS root
+- **GitHub Action** — composite `action.yml` at repo root with inputs for path/format/min-score/fail-on-level/baseline/skip/only, outputs for score/level/findings counts, and automatic SARIF upload to GitHub Code Scanning
 - **Competitor detection** — 17 vendors, cross-checked scores (Zenity 55, Portkey 32, Noma 40 per 2026-04-10 research)
 
 ---
@@ -32,11 +34,6 @@ Status tags:
 ## Product Work
 
 ### TODO
-
-- **[B] Config file (`.warden.yml`)**
-  Project-level defaults for `skip`, `only`, `min_score`, `baseline`, `output_dir`.
-  Every mature linter has this (ruff, eslint, mypy). Table-stakes for CI adoption
-  so teams don't sprinkle the same flags across every workflow.
 
 - **[C] PDF reports** (behind optional `pip install warden-ai[pdf]` extra)
   Boardroom-ready governance posture. CISOs and auditors don't read HTML files —
@@ -175,8 +172,8 @@ Status tags:
 
 ## Execution Order (current)
 
-1. **G** — GitHub Action (distribution multiplier, makes everything else reach farther)
-2. **B** — Config file (adoption table-stakes)
+1. ~~**G** — GitHub Action~~ (shipped 2026-04-10)
+2. ~~**B** — Config file~~ (shipped 2026-04-10 — `.warden.toml` + `[tool.warden]`)
 3. **C** — PDF reports (unlocks enterprise/compliance buyer)
 4. **J** — Sample gallery site (SEO + social proof compounds)
 5. **F** — Parallel secrets scanning (last perf polish)

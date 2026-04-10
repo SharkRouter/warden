@@ -70,15 +70,77 @@ LAYER_NAMES = {
               help="CI mode: exit code reflects governance level (0=governed, 1=partial, 2=at_risk, 3=ungoverned)")
 @click.option("--min-score", type=int, default=None,
               help="Fail (exit 1) if score is below this threshold (implies --ci)")
-@click.option("--baseline", "baseline_path", type=click.Path(exists=True), default=None,
+@click.option("--baseline", "baseline_path", type=click.Path(), default=None,
               help="Baseline file — only show NEW findings not in the baseline")
+@click.option("--no-config", is_flag=True, default=False,
+              help="Ignore any .warden.toml / [tool.warden] config discovered from the scan path")
+@click.pass_context
 def scan(
+    ctx: click.Context,
     path: str, output_format: str, output_dir: str | None,
     skip_layers: str | None, only_layers: str | None,
     ci: bool, min_score: int | None, baseline_path: str | None,
+    no_config: bool,
 ) -> None:
     """Scan a project for AI agent governance posture."""
     target = Path(path).resolve()
+
+    # Merge project config (.warden.toml or [tool.warden] in pyproject.toml)
+    # CLI flags always win over config; config only fills in parameters left
+    # at their defaults.
+    config_source: Path | None = None
+    if not no_config:
+        from warden.config import load_config, normalize_list_option
+
+        cfg, config_source = load_config(target)
+        if cfg:
+            from click.core import ParameterSource
+
+            def _from_default(name: str) -> bool:
+                return ctx.get_parameter_source(name) == ParameterSource.DEFAULT
+
+            config_dir = config_source.parent if config_source else target
+
+            if "format" in cfg and _from_default("output_format"):
+                output_format = str(cfg["format"])
+            if "output_dir" in cfg and _from_default("output_dir"):
+                raw_out = str(cfg["output_dir"])
+                out_candidate = Path(raw_out)
+                if not out_candidate.is_absolute():
+                    out_candidate = config_dir / out_candidate
+                output_dir = str(out_candidate)
+            if "skip" in cfg and _from_default("skip_layers"):
+                skip_layers = normalize_list_option(cfg["skip"])
+            if "only" in cfg and _from_default("only_layers"):
+                only_layers = normalize_list_option(cfg["only"])
+            if "ci" in cfg and _from_default("ci"):
+                ci = bool(cfg["ci"])
+            if "min_score" in cfg and _from_default("min_score"):
+                try:
+                    min_score = int(cfg["min_score"])
+                except (TypeError, ValueError):
+                    console.print(
+                        f"[yellow]warden:[/yellow] ignoring non-integer min_score in {config_source}"
+                    )
+            if "baseline" in cfg and _from_default("baseline_path"):
+                raw_baseline = str(cfg["baseline"])
+                candidate = Path(raw_baseline)
+                if not candidate.is_absolute():
+                    candidate = (config_dir / candidate).resolve()
+                if candidate.is_file():
+                    baseline_path = str(candidate)
+                else:
+                    console.print(
+                        f"[yellow]warden:[/yellow] baseline '{raw_baseline}' from "
+                        f"{config_source} not found — ignoring"
+                    )
+
+    # Validate a CLI-supplied baseline exists (config_path check handled above).
+    if baseline_path and not Path(baseline_path).is_file():
+        raise click.BadParameter(
+            f"Baseline file not found: {baseline_path}", param_hint="--baseline"
+        )
+
     out_dir = Path(output_dir).resolve() if output_dir else Path.cwd()
 
     console.print(BANNER, style="bold bright_blue", highlight=False)
@@ -87,6 +149,12 @@ def scan(
         "[white]AI Agent Governance Scanner[/white]"
     )
     console.print(f"Scanning: [white]{target}[/white]")
+    if config_source is not None:
+        try:
+            rel = config_source.relative_to(Path.cwd())
+        except ValueError:
+            rel = config_source
+        console.print(f"  Config:  [white]{rel}[/white]")
 
     # Count analyzable files — single walk, prune skip dirs
     from warden.scanner.code_analyzer import _walk_files

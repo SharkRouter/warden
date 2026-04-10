@@ -19,6 +19,7 @@ Status tags:
 - MCP risk classification with inline tool analysis
 - Python 3.10+, PyPI published as `warden-ai`
 - **Parallel scanning** — 9 layers run concurrently, 47s full scan on 2554-file project (2.2x faster than sequential)
+- **Parallel secrets scanning** — per-file secrets scan runs on a thread pool (sequential fallback below 8 files), preserving gitignore downgrade and progress callback
 - **Gitignore-aware secrets** — `.env` secrets downgraded to INFO, not CRITICAL
 - **Positive-signal D4 & D14** — credentials and compliance dimensions reward active practices, not absence of problems
 - **CI mode** — `--ci` and `--min-score` exit codes
@@ -28,7 +29,8 @@ Status tags:
 - **`.warden.toml` / `[tool.warden]` config** — project-level defaults for format, skip, only, min_score, baseline, output_dir, ci. CLI flags override. Discovered by walking upward from the scan path until a VCS root
 - **PDF reports** — `pip install warden-ai[pdf]` adds `--format pdf`; renders the existing HTML report via weasyprint for boardroom/auditor use. Core install stays lean (deps behind an extra)
 - **GitHub Action** — composite `action.yml` at repo root with inputs for path/format/min-score/fail-on-level/baseline/skip/only, outputs for score/level/findings counts, and automatic SARIF upload to GitHub Code Scanning
-- **Competitor detection** — 17 vendors, cross-checked scores (Zenity 55, Portkey 32, Noma 40 per 2026-04-10 research)
+- **Competitor detection** — 20 vendors, cross-checked scores (Zenity 55, Portkey 32, Noma 40, HiddenLayer 34, Protect AI 32 per 2026-04-10 research)
+- **Sample report gallery** — `gallery/` builder scaffolds a static site of governance audits for 10 popular OSS AI frameworks (LangChain, LangGraph, CrewAI, AutoGen, Haystack, LlamaIndex, Semantic Kernel, PydanticAI, MetaGPT, Langflow). Stdlib-only build script, idempotent clones, per-target SEO landing pages with JSON-LD + OpenGraph, merged master index. Deploys to any static host (GitHub Pages / Caddy / Netlify)
 
 ---
 
@@ -36,13 +38,18 @@ Status tags:
 
 ### TODO
 
-- **[F] Parallel secrets scanning**
-  Secrets is still the single biggest per-layer bottleneck (~17-33s). ThreadPool
-  over files inside `secrets_scanner`. Pure performance win, no behavioral change.
-
-- **[E-partial] Add Protect AI + HiddenLayer competitors**
-  Both are real shipping products teams deploy. Surgical additions, not bulk —
-  detection accuracy matters more than registry size.
+- **C# / .NET scanner (Layer 13: Multi-Language, second batch)**
+  Surfaced 2026-04-10 while scanning `JordanCT/VigIA-Orchestrator`, a
+  pure-C# agent project. Warden indexed 0 files, fired absence-based
+  CRITICAL findings on an empty scan, and scored 2/100 — punishing the
+  project for a scanner blind spot, not a governance gap. C# / .NET is a
+  primary AI agent stack (Semantic Kernel, MCP C# SDK, Copilot Studio),
+  so this is the single highest-value language addition.
+  Minimum viable scope: regex detection of `Microsoft.SemanticKernel`
+  imports, `[KernelFunction]` attribute auditing, `ILogger`-based audit
+  logging, `IChatCompletionService` usage, approval-gate patterns, and
+  hardcoded credentials in `.config`/`.json`/`appsettings*.json`.
+  Same architecture as `multilang_scanner.py` (regex, not AST).
 
 ### DEFER
 
@@ -127,20 +134,18 @@ Status tags:
 
 ### TODO
 
-- **[G] GitHub Action marketplace listing** (`warden-ai/action@v1`)
-  The highest-value distribution move. One-line CI integration turns Warden from
-  "a thing you run locally" into "a thing every repo has." PR annotations via
-  SARIF land findings directly in code review.
+_(No outstanding GTM TODOs — all distribution items shipped. Next move is
+deploying `gallery/out/` to a public host and announcing.)_
 
-- **[J] Sample report gallery site**
-  Static HTML reports for popular OSS: LangChain, CrewAI, AutoGen, Haystack,
-  LlamaIndex, etc. Permanent search-indexable content, trust signal, social
-  proof. When someone googles "langchain security audit," Warden shows up.
+### NEXT (not code, not blocked on code)
 
-### DEFER
+- **Run a full 10-target gallery build**, iron out per-target scan_path
+  quirks, then scp the `gallery/out/` tree to the Caddy host at
+  `/opt/sharkagent/gallery/` (or push to GitHub Pages). One-time manual
+  deploy — see `gallery/README.md` for the deploy options.
 
 - **Blog post series** — "Why LangChain scores X/100" walkthroughs that feed
-  the gallery. Depends on gallery being live first.
+  the gallery. Gallery is live now; this is the next write-up task.
 
 - **Conference talk / paper** — methodology writeup for security conferences.
   Valuable for credibility but needs a concrete target venue.
@@ -171,6 +176,9 @@ Status tags:
 1. ~~**G** — GitHub Action~~ (shipped 2026-04-10)
 2. ~~**B** — Config file~~ (shipped 2026-04-10 — `.warden.toml` + `[tool.warden]`)
 3. ~~**C** — PDF reports~~ (shipped 2026-04-10 — `warden-ai[pdf]` extra)
-4. **J** — Sample gallery site (SEO + social proof compounds)
-5. **F** — Parallel secrets scanning (last perf polish)
-6. **E** — Add Protect AI + HiddenLayer (surgical competitor additions)
+4. ~~**F** — Parallel secrets scanning~~ (shipped 2026-04-10 — `ThreadPoolExecutor` over `_scan_file`)
+5. ~~**E** — Add Protect AI + HiddenLayer~~ (shipped 2026-04-10 — 20-vendor registry)
+6. ~~**J** — Sample gallery site~~ (shipped 2026-04-10 — `gallery/` builder with 10 targets, 3 validated, SEO landing pages ready to deploy)
+
+**All six committed TODO items from the start of this roadmap are now shipped.**
+Next: manual gallery deploy + blog post series.

@@ -16,7 +16,7 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 |--------|-------|
 | Total source lines | ~7,200 |
 | Test lines | ~1,230 |
-| Tests passing | 116 |
+| Tests passing | 118 |
 | Scanner modules | 14 |
 | Scoring dimensions | 17 |
 | Scan layers | 12 |
@@ -46,7 +46,7 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 | `code_analyzer.py` | 733 | 1: Code Patterns | D1-D16 | `.py` (AST), `.js/.ts/.jsx/.tsx` (regex) |
 | `mcp_scanner.py` | 269 | 2: MCP Servers | D1-D4 | `mcp*.json`, config files |
 | `infra_analyzer.py` | 226 | 3: Infrastructure | D4, D9 | Dockerfile, docker-compose `.yml`, K8s manifests |
-| `secrets_scanner.py` | 237 | 4: Secrets | D4 | `.py`, `.js`, `.ts`, `.yaml`, `.json`, `.env`, `.md`, `.txt`, etc. |
+| `secrets_scanner.py` | 337 | 4: Secrets | D4 | `.py`, `.js`, `.ts`, `.yaml`, `.json`, `.env`, `.md`, `.txt`, etc. Per-file scan parallelized via `ThreadPoolExecutor` (sequential fallback below 8 files) |
 | `agent_arch_scanner.py` | 219 | 5: Agent Architecture | D7-D9, D12 | `.py` only (AST) |
 | `dependency_scanner.py` | 227 | 6: Supply Chain | D14 | `requirements.txt`, `pyproject.toml`, `package.json`, lockfiles |
 | `audit_scanner.py` | 190 | 7: Audit & Compliance | D5, D14 | `.py` only |
@@ -56,7 +56,7 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 | `multilang_scanner.py` | 525 | 11: Multi-Language | D7-D9 | `.go`, `.rs`, `.java` |
 | `cloud_scanner.py` | 325 | 12: Cloud AI Governance | D4, D9-D11 | `.py`, `.tf`, `.json`, `.yaml` |
 | `trap_defense_scanner.py` | 258 | D17 | D17 | `.py` only |
-| `competitors.py` | 470 | — | — | `.env`, compose files, `.py`, `.js`, `.ts`, `.yaml`, `.json`, `.toml` |
+| `competitors.py` | 551 | — | — | `.env`, compose files, `.py`, `.js`, `.ts`, `.yaml`, `.json`, `.toml` |
 
 ### Scoring (`warden/scoring/`)
 
@@ -80,6 +80,18 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 | File | Lines | Purpose |
 |------|-------|---------|
 | `signals.py` | 70 | GTM signal collection for email form (score, dimensions, MCP tools, frameworks) |
+
+### Gallery (`gallery/` — repo root, not shipped on PyPI)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `gallery/targets.toml` | ~80 | 10 curated OSS AI frameworks (LangChain, LangGraph, CrewAI, AutoGen, Haystack, LlamaIndex, Semantic Kernel, PydanticAI, MetaGPT, Langflow) with slug/repo/category/description/scan_path |
+| `gallery/build.py` | ~720 | Stdlib-only site builder: `clone_or_update()`, `run_warden_scan()`, `write_target_landing()`, `write_master_index()`. Idempotent merge of existing + fresh scans. Supports `--only`, `--skip`, `--no-clone`, `--clean` |
+| `gallery/README.md` | — | Build/deploy guide, target-selection criteria, vendor-neutrality policy |
+
+**Output layout (gitignored):** `gallery/out/index.html`, `gallery/out/<slug>/{index.html,report.html,report.json,report.sarif}`, `gallery/out/assets/gallery.css`. Each target landing page includes title, description meta, canonical URL, OpenGraph, Twitter card, and JSON-LD Dataset schema for rich search results.
+
+**Verified scans (2026-04-10):** PydanticAI 24/100 (UNGOVERNED), CrewAI 19/100 (UNGOVERNED), LangGraph 14/100 (UNGOVERNED). Remaining 7 targets not yet scanned — deploy step is one-time manual (scp to Caddy or push to GitHub Pages).
 
 ---
 
@@ -250,13 +262,13 @@ GitHub Code Scanning compatible. Each finding becomes a SARIF `result` with `rul
 | `warden diff <old.json> <new.json>` | Compare two JSON reports — score delta + new/resolved findings |
 | `warden fix <path>` | Auto-remediate `.gitignore`, dependency pinning, Dockerfile `USER` |
 | `warden methodology` | Print scoring methodology to terminal |
-| `warden leaderboard` | Show 17-vendor x 17-dimension market comparison |
+| `warden leaderboard` | Show 20-vendor x 17-dimension market comparison |
 
 ---
 
 ## Test Suite
 
-102 tests across 5 test directories:
+118 tests across 5 test directories:
 
 | Directory | Tests | Coverage |
 |-----------|-------|----------|
@@ -272,7 +284,7 @@ All tests run in < 2 seconds with `pytest-timeout=30`.
 
 ## Competitor Detection
 
-Warden detects **17 governance and security tools** in the scanned project. Detection uses 5 signal layers:
+Warden detects **20 governance and security tools** in the scanned project. Detection uses 5 signal layers:
 
 | Signal Layer | What It Checks |
 |-------------|----------------|
@@ -284,7 +296,7 @@ Warden detects **17 governance and security tools** in the scanned project. Dete
 
 **Detection threshold:** 2+ signals from different layers = "detected" (confidence: medium/high). Single-signal matches are confidence: "low" and are NOT shown in the report.
 
-### 17 Registered Vendors
+### 20 Registered Vendors
 
 | ID | Display Name | Category |
 |----|-------------|----------|
@@ -306,6 +318,8 @@ Warden detects **17 governance and security tools** in the scanned project. Dete
 | mcp_scan | mcp-scan / Snyk | Scanner |
 | aifwall | aiFWall | AI Firewall |
 | rubrik | Rubrik | Data Recovery |
+| protect_ai | Protect AI (Palo Alto Networks) | ML Security |
+| hiddenlayer | HiddenLayer | ML Security |
 
 Each vendor has a `warden_score` (estimated score if fully deployed) and `strengths`/`weaknesses` for the HTML report's comparison table.
 
@@ -360,7 +374,20 @@ GTM data is included in the email form payload (opt-in) — never sent automatic
 
 ## CI/CD Pipeline
 
-Two GitHub Actions workflows:
+### Composite GitHub Action (`action.yml` at repo root)
+
+Warden ships as a reusable composite action so downstream projects get one-step adoption:
+
+```yaml
+- uses: SharkRouter/warden@v1
+  with:
+    min-score: 60
+    fail-on-level: at_risk
+```
+
+Inputs: `path`, `format`, `output-dir`, `skip`, `only`, `baseline`, `min-score`, `fail-on-level`, `upload-sarif`, `sarif-category`, `warden-version`, `python-version`. Outputs: `score`, `raw-score`, `level`, `findings-count`, `critical-count`, `report-json`, `report-html`, `report-sarif`. Writes a job summary with level + score + findings breakdown. Conditionally uploads SARIF to GitHub Code Scanning via `github/codeql-action/upload-sarif@v3`.
+
+**Self-validation:** `.github/workflows/ci.yml` → `self-scan` job calls the action via `uses: ./` on every push, so a broken `action.yml` is caught before it reaches marketplace consumers.
 
 ### `ci.yml` — Runs on every push/PR to main
 

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "warden-ai",
+          "version": "1.7.0",
+          "informationUri": "https://github.com/SharkRouter/warden",
+          "rules": [
+            {
+              "id": "multilang_scanner/D5",
+              "shortDescription": {
+                "text": "multilang_scanner/D5"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "text": "Inject ILogger<T> (or ILoggerFactory) and log every tool invocation, state transition, and LLM call"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "multilang_scanner/D5",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Agent / orchestrator / handler class has no ILogger<T> — no audit trail for agent decisions"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/Vigia.Agent.Orchestration/VigiaAgentOrchestrator.cs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

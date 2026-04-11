@@ -1,0 +1,154 @@
+{
+  "version": "1.7.0",
+  "scoring_model": "v4.3",
+  "scoring_version": "4.3",
+  "timestamp": "2026-04-11T19:49:15.131207+00:00",
+  "target_path": "C:\\Users\\gilad\\Projects\\warden\\gallery\\repos\\vigia-orchestrator",
+  "file_counts": {
+    "python": 0,
+    "js": 0,
+    "other": 0,
+    "csharp": 39
+  },
+  "coverage_warning": false,
+  "score": {
+    "total": 61,
+    "max": 100,
+    "level": "PARTIAL",
+    "raw_total": 92,
+    "raw_max": 235,
+    "dimensions": {
+      "D1": {
+        "name": "Tool Inventory",
+        "raw": 12,
+        "max": 25,
+        "pct": 48
+      },
+      "D2": {
+        "name": "Risk Detection",
+        "raw": 0,
+        "max": 20,
+        "pct": 0
+      },
+      "D3": {
+        "name": "Policy Coverage",
+        "raw": 14,
+        "max": 20,
+        "pct": 70
+      },
+      "D4": {
+        "name": "Credential Management",
+        "raw": 13,
+        "max": 20,
+        "pct": 65
+      },
+      "D5": {
+        "name": "Log Hygiene",
+        "raw": 4,
+        "max": 10,
+        "pct": 40
+      },
+      "D6": {
+        "name": "Framework Coverage",
+        "raw": 2,
+        "max": 5,
+        "pct": 40
+      },
+      "D7": {
+        "name": "Human-in-the-Loop",
+        "raw": 10,
+        "max": 15,
+        "pct": 67
+      },
+      "D8": {
+        "name": "Agent Identity",
+        "raw": 10,
+        "max": 15,
+        "pct": 67
+      },
+      "D9": {
+        "name": "Threat Detection",
+        "raw": 0,
+        "max": 20,
+        "pct": 0
+      },
+      "D10": {
+        "name": "Prompt Security",
+        "raw": 0,
+        "max": 15,
+        "pct": 0
+      },
+      "D11": {
+        "name": "Cloud / Platform",
+        "raw": 6,
+        "max": 10,
+        "pct": 60
+      },
+      "D12": {
+        "name": "LLM Observability",
+        "raw": 5,
+        "max": 10,
+        "pct": 50
+      },
+      "D13": {
+        "name": "Data Recovery",
+        "raw": 0,
+        "max": 10,
+        "pct": 0
+      },
+      "D14": {
+        "name": "Compliance Maturity",
+        "raw": 8,
+        "max": 10,
+        "pct": 80
+      },
+      "D15": {
+        "name": "Post-Exec Verification",
+        "raw": 0,
+        "max": 10,
+        "pct": 0
+      },
+      "D16": {
+        "name": "Data Flow Governance",
+        "raw": 0,
+        "max": 10,
+        "pct": 0
+      },
+      "D17": {
+        "name": "Adversarial Resilience",
+        "raw": 8,
+        "max": 10,
+        "pct": 80
+      }
+    }
+  },
+  "findings": [
+    {
+      "layer": 11,
+      "scanner": "multilang_scanner",
+      "file": "C:\\Users\\gilad\\Projects\\warden\\gallery\\repos\\vigia-orchestrator\\src\\Vigia.Agent.Orchestration\\VigiaAgentOrchestrator.cs",
+      "line": 17,
+      "severity": "HIGH",
+      "dimension": "D5",
+      "message": "Agent / orchestrator / handler class has no ILogger<T> — no audit trail for agent decisions",
+      "remediation": "Inject ILogger<T> (or ILoggerFactory) and log every tool invocation, state transition, and LLM call",
+      "compliance": {
+        "eu_ai_act": "Article 12",
+        "owasp_llm": "LLM09"
+      }
+    }
+  ],
+  "competitors_detected": [],
+  "gtm_signal": "",
+  "trap_defense": {
+    "content_injection": false,
+    "rag_poisoning": false,
+    "behavioral_traps": false,
+    "approval_integrity": false,
+    "adversarial_testing": false,
+    "tool_attack_simulation": false,
+    "chaos_engineering": false,
+    "before_after_comparison": false,
+    "deepmind_citation": "Franklin, Tomašev, Jacobs, Leibo, Osindero. \"AI Agent Traps.\" Google DeepMind, March 2026."
+  }
+}

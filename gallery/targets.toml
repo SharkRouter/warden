@@ -102,3 +102,11 @@ category = "Low-Code"
 description = "Visual low-code tool for building and deploying AI agents and workflows."
 scan_path = "src/backend/base"
 homepage = "https://www.langflow.org/"
+
+[[target]]
+slug = "vigia-orchestrator"
+name = "VigIA Orchestrator"
+repo = "JordanCT/VigIA-Orchestrator"
+category = "Framework"
+description = "C#/.NET agent orchestrator built on Microsoft.Extensions.AI with Result<T,E>, invariant enforcement, and FSM-guarded state transitions. The first non-Python project in the gallery."
+homepage = "https://github.com/JordanCT/VigIA-Orchestrator"

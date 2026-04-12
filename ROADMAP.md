@@ -1,6 +1,6 @@
 # Warden Roadmap
 
-Status as of **v1.7.0 in release** (2026-04-11).
+Status as of **v1.7.1** (2026-04-12).
 
 Status tags:
 - **TODO** — committed, will build soon
@@ -12,7 +12,7 @@ Status tags:
 
 ## What's Solid (shipped)
 
-- 12 scan layers, 17 scoring dimensions, 124 tests
+- 12 scan layers + C#/.NET extension, 17 scoring dimensions, 142 tests
 - Scoring model v4.3 with 6 anti-inflation mechanisms, no absence=compliance
 - Privacy-first: zero network calls, secrets masked, self-contained HTML reports
 - 3 output formats: HTML, JSON, SARIF (GitHub Code Scanning)
@@ -250,13 +250,29 @@ langchain 13, langgraph 14, crewai 19, autogen 6, haystack 15, llamaindex 13, se
    on PyPI so the `pip install warden-ai` claim in the post is
    accurate.
 
+### Shipped in v1.7.1 (2026-04-12)
+
+1. ~~**CHANGELOG.md**~~ — structured changelog covering v1.0.0 → v1.7.0 with Keep a Changelog format
+2. ~~**CONTRIBUTING.md**~~ — dev setup, PR norms, architecture constraints, scoring change process
+3. ~~**docs/WARDEN_STATE.md refresh**~~ — updated to v1.7.0 (142 tests, C#/.NET scanner, 11 gallery targets, VigIA calibration reference)
+4. ~~**ROADMAP.md refresh**~~ — blog posts #13-#19 shipped, Phase 12 heatmap closed as WON'T DO
+
+### Shipped: Blog post series (Tier 3 GTM, via sharkrouter.ai/blog)
+
+1. ~~Post #13: "Why Every Python Agent Framework Scores UNGOVERNED"~~ (v1.7.0 launch post)
+2. ~~Post #14: "How We Fixed the 2/100 Problem — C# Scanner + Coverage Gating"~~ (VigIA case study)
+3. ~~Post #15: "Your AI Agent Just Got Hacked"~~ (DeepMind agent traps, refreshed with current vendor numbers)
+4. ~~Post #16: "MCP Without a Gateway Is a Root Shell"~~ (MCP/A2A governance)
+5. ~~Post #17: "We Scored 19 AI Security Vendors"~~ (19-vendor benchmark with actual registry data)
+6. ~~Post #18: "From One Line of Code to Full AI Agent Governance"~~ (Policy Bootstrap / Shadow Mode)
+7. ~~Post #19: "Your LLM Failed 28 of 33 Attacks"~~ (Gulliver chaos engineering / live demo)
+
 ### Next up (in order, not time — decision gates, not calendar days)
 
-1. **Tier 3 — Blog post series (continued)**
-   - Post #2: "How we fixed the 2/100 problem — C# scanner + coverage gating"
-     (VigIA before/after case study, drafted alongside v1.7.0)
-   - Post #3+: one per gallery target (LangChain deep-dive, AutoGen 6/100 anatomy, etc.), rolling cadence
+1. **Blog post rolling cadence** — one per gallery target (LangChain deep-dive, AutoGen 6/100 anatomy, etc.)
 
 2. **Conference talk / paper** — methodology writeup for a security venue. No concrete target yet; unblocked but waiting for a venue, not for code.
 
 3. **GitHub Marketplace listing** — carryover from v1.6.0 and v1.7.0. One-click manual step on a GitHub release page. Still unchecked. Flag to user; can't be automated.
+
+4. **Phase 12 "Market Context" heatmap in HTML report** — **WON'T DO.** Originally planned for v1.6. The Detected Solutions comparison table (shipped in v1.5.1) already covers competitive positioning. A full 20-vendor × 17-dimension heatmap adds visual weight without actionable value for the scanner user. The data is available via `warden leaderboard` in the terminal for anyone who wants it.

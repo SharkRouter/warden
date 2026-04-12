@@ -1,6 +1,6 @@
-# Warden — Complete State (v1.5.6)
+# Warden — Complete State (v1.7.0)
 
-Last updated: 2026-04-10
+Last updated: 2026-04-12
 
 ## Overview
 
@@ -14,12 +14,12 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 
 | Metric | Value |
 |--------|-------|
-| Total source lines | ~7,200 |
-| Test lines | ~1,230 |
-| Tests passing | 118 |
-| Scanner modules | 14 |
+| Total source lines | ~8,750 |
+| Test lines | ~2,145 |
+| Tests passing | 142 |
+| Scanner modules | 14 (including C#/.NET in multilang) |
 | Scoring dimensions | 17 |
-| Scan layers | 12 |
+| Scan layers | 12 + C#/.NET extension (Layer 13, second batch) |
 | Raw max score | 235 |
 | Runtime dependencies | 2 (click, rich) + `tomli` on Python 3.10 only (stdlib `tomllib` on 3.11+) |
 | Dev dependencies | 2 (pytest, pytest-timeout) |
@@ -32,7 +32,7 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `warden/__init__.py` | 8 | Version (`1.5.6`) and scoring model (`4.3`) |
+| `warden/__init__.py` | 8 | Version (`1.7.0`) and scoring model (`4.3`) |
 | `warden/__main__.py` | — | `python -m warden` entry point |
 | `warden/cli.py` | ~950 | Click CLI — `scan`, `methodology`, `leaderboard`, `baseline`, `diff`, `fix` commands. Orchestrates all layers (parallel), aggregates scores, writes reports. Merges `.warden.toml` defaults |
 | `warden/config.py` | 140 | `.warden.toml` / `[tool.warden]` config loader with upward search, VCS-root stop, and unknown-key warnings |
@@ -53,7 +53,7 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 | `cicd_scanner.py` | 170 | 8: CI/CD Governance | D3, D14 | `.yml/.yaml` in `.github/workflows/` |
 | `iac_scanner.py` | 512 | 9: IaC Security | D4, D9 | `.tf`, `.yaml/.yml/.json` (CloudFormation), `.ts/.py` (Pulumi) |
 | `framework_scanner.py` | 268 | 10: Framework Governance | D6, D7 | `.py` only |
-| `multilang_scanner.py` | 525 | 11: Multi-Language | D7-D9 | `.go`, `.rs`, `.java` |
+| `multilang_scanner.py` | 1,329 | 11: Multi-Language + C#/.NET (Layer 13) | D1, D7-D9, D14, D17 | `.go`, `.rs`, `.java`, `.cs`, `.csproj` |
 | `cloud_scanner.py` | 325 | 12: Cloud AI Governance | D4, D9-D11 | `.py`, `.tf`, `.json`, `.yaml` |
 | `trap_defense_scanner.py` | 258 | D17 | D17 | `.py` only |
 | `competitors.py` | 551 | — | — | `.env`, compose files, `.py`, `.js`, `.ts`, `.yaml`, `.json`, `.toml` |
@@ -85,13 +85,13 @@ Warden is an open-source, local-only CLI scanner that evaluates AI agent governa
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `gallery/targets.toml` | ~80 | 10 curated OSS AI frameworks (LangChain, LangGraph, CrewAI, AutoGen, Haystack, LlamaIndex, Semantic Kernel, PydanticAI, MetaGPT, Langflow) with slug/repo/category/description/scan_path |
+| `gallery/targets.toml` | ~90 | 11 curated OSS AI frameworks (LangChain, LangGraph, CrewAI, AutoGen, Haystack, LlamaIndex, Semantic Kernel, PydanticAI, MetaGPT, Langflow, VigIA-Orchestrator) with slug/repo/category/description/scan_path |
 | `gallery/build.py` | ~720 | Stdlib-only site builder: `clone_or_update()`, `run_warden_scan()`, `write_target_landing()`, `write_master_index()`. Idempotent merge of existing + fresh scans. Supports `--only`, `--skip`, `--no-clone`, `--clean` |
 | `gallery/README.md` | — | Build/deploy guide, target-selection criteria, vendor-neutrality policy |
 
 **Output layout (gitignored):** `gallery/out/index.html`, `gallery/out/<slug>/{index.html,report.html,report.json,report.sarif}`, `gallery/out/assets/gallery.css`. Each target landing page includes title, description meta, canonical URL, OpenGraph, Twitter card, and JSON-LD Dataset schema for rich search results.
 
-**Verified scans (2026-04-10):** PydanticAI 24/100 (UNGOVERNED), CrewAI 19/100 (UNGOVERNED), LangGraph 14/100 (UNGOVERNED). Remaining 7 targets not yet scanned — deploy step is one-time manual (scp to Caddy or push to GitHub Pages).
+**Verified scans (2026-04-11):** All 11 targets scanned and deployed to GitHub Pages at `sharkrouter.github.io/warden/`. Scores: PydanticAI 24, CrewAI 19, Langflow 18, Haystack 15, LangGraph 14, Semantic Kernel 14, LangChain 13, LlamaIndex 13, MetaGPT 11, AutoGen 6 — all UNGOVERNED. VigIA-Orchestrator 61 (PARTIAL) — first non-Python target, demonstrating the C#/.NET scanner + coverage gate working on real .NET code.
 
 ---
 
@@ -268,15 +268,17 @@ GitHub Code Scanning compatible. Each finding becomes a SARIF `result` with `rul
 
 ## Test Suite
 
-124 tests across 5 test directories:
+142 tests across 7 test directories:
 
 | Directory | Tests | Coverage |
 |-----------|-------|----------|
 | `tests/test_scoring/` | Dimension definitions, score engine, deductions |
-| `tests/test_scanner/` | Individual scanner correctness |
-| `tests/test_report/` | JSON report structure, scoring version |
-| `tests/test_security/` | HTML self-contained (no external URLs), secrets masking, no SharkRouter imports |
+| `tests/test_scanner/` | Individual scanner correctness (code, MCP, infra, secrets, agent arch, deps, multilang C#, trap defense, audit) |
+| `tests/test_report/` | JSON report structure, scoring version, PDF writer |
+| `tests/test_security/` | HTML self-contained (no external URLs), no network imports, no SharkRouter imports, secrets masking |
 | `tests/test_competitors/` | Competitor registry, detection logic |
+| `tests/test_config/` | `.warden.toml` / `[tool.warden]` config loader |
+| `tests/test_integration/` | Full end-to-end scan pipeline |
 
 All tests run in < 2 seconds with `pytest-timeout=30`.
 
@@ -424,6 +426,8 @@ Inputs: `path`, `format`, `output-dir`, `skip`, `only`, `baseline`, `min-score`,
 | 1.5.4 | 4.3 | Gitignore-aware secrets scanning — `.env` secrets downgraded to INFO |
 | 1.5.5 | 4.3 | Parallel scanning — 9 layers run concurrently, 2.2x faster (47s on 2554-file project) |
 | 1.5.6 | 4.3 | `warden baseline` command, competitor score refresh (Zenity 55, Portkey 32, Noma 40) |
+| 1.6.0 | 4.3 | GitHub Action, `.warden.toml` config, PDF reports, parallel secrets, 20-vendor registry, gallery builder (10 targets) |
+| 1.7.0 | 4.3 | C#/.NET scanner (Layer 13), absence-vs-coverage scoring fix, VigIA-Orchestrator gallery target #11, 142 tests |
 
 ---
 
@@ -440,11 +444,14 @@ Inputs: `path`, `format`, `output-dir`, `skip`, `only`, `baseline`, `min-score`,
 
 ## Calibration Reference
 
-Tested against real projects (v1.5.6):
+Tested against real projects (v1.7.0):
 
 | Project | Type | Score | Level | Notes |
 |---------|------|-------|-------|-------|
 | SharkRouter (sharkAI) | AI governance platform | ~60-65 | PARTIAL | Real governance patterns, some CRITICAL secrets in dev |
 | codecontrol (gollm) | AI agent (non-governance) | ~25-30 | UNGOVERNED | Good infra practices but no governance layer |
+| VigIA-Orchestrator | C#/.NET AI orchestrator | 61 | PARTIAL | Strong on D3, D4, D7, D8, D14, D17 — first non-Python validation |
+| PydanticAI | Python AI framework | 24 | UNGOVERNED | Highest Python-framework gallery score |
+| AutoGen | Python AI framework | 6 | UNGOVERNED | Lowest gallery score — minimal governance patterns |
 
-The gap between a governance-focused platform and a general AI project is now clearly visible in scores.
+The gap between governance-focused platforms and general AI frameworks is clearly visible. The C#/.NET scanner (v1.7.0) closed the language-coverage gap that previously scored .NET projects at 2/100.

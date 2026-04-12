@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "warden-ai"
-version = "1.7.0"
+version = "1.7.1"
 description = "AI Agent Governance Scanner — local-only CLI that scores governance posture across 17 dimensions"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -50,7 +50,7 @@ Homepage = "https://github.com/SharkRouter/warden"
 Documentation = "https://github.com/SharkRouter/warden#readme"
 Repository = "https://github.com/SharkRouter/warden"
 Issues = "https://github.com/SharkRouter/warden/issues"
-Changelog = "https://github.com/SharkRouter/warden/releases"
+Changelog = "https://github.com/SharkRouter/warden/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["warden"]

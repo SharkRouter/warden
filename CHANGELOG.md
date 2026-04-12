@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ---
 
+## [1.7.2] — 2026-04-13
+
+### Fixed
+- **Secrets scanner inline-comment false positive** — `_scan_file` only skipped lines that *started* with `#` or `//`. Inline comments like TypeScript `field?: string; // example: -----BEGIN RSA PRIVATE KEY-----` leaked their example literals into regex scanning and fired CRITICAL "Exposed Private Key" on pure type declarations. Found while scanning Portkey-ai/gateway. Fix strips trailing `\s+//...` (C-family) and `\s+#...` (Python/Ruby/Shell/YAML) before regex match. URL schemes (`http://`, `postgres://user:pw@host`) are preserved — no whitespace precedes the `//`. 4 regression tests added.
+
 ## [1.7.0] — 2026-04-11
 
 ### Added

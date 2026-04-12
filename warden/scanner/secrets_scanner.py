@@ -258,6 +258,34 @@ def _iter_scannable_files(target: Path) -> list[Path]:
     return files
 
 
+_C_FAMILY_EXTS = {
+    ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs",
+    ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp",
+    ".go", ".rs", ".java", ".cs", ".kt", ".kts",
+    ".swift", ".scala", ".m", ".mm", ".dart", ".php",
+}
+_HASH_COMMENT_EXTS = {
+    ".py", ".rb", ".sh", ".bash", ".zsh",
+    ".yml", ".yaml", ".toml", ".ini", ".cfg", ".conf",
+}
+_INLINE_SLASH_COMMENT = re.compile(r"\s+//.*$")
+_INLINE_HASH_COMMENT = re.compile(r"\s+#.*$")
+
+
+def _strip_inline_comment(line: str, ext: str) -> str:
+    """Strip trailing inline comments before secret regex scan.
+
+    Only strips when the comment marker is preceded by whitespace, so URL
+    schemes like ``http://`` or ``postgres://user:pass@host`` are preserved
+    (no space before the ``//``). Leaves unknown file types untouched.
+    """
+    if ext in _C_FAMILY_EXTS:
+        return _INLINE_SLASH_COMMENT.sub("", line)
+    if ext in _HASH_COMMENT_EXTS:
+        return _INLINE_HASH_COMMENT.sub("", line)
+    return line
+
+
 def _is_regex_definition(line: str, matched_value: str) -> bool:
     """Check if a matched value appears inside a regex pattern definition.
 
@@ -291,14 +319,19 @@ def _scan_file(filepath: Path) -> tuple[list[Finding], list[SecretMatch]]:
         return findings, secrets
 
     lines = content.splitlines()
+    ext = filepath.suffix.lower()
     for line_num, line in enumerate(lines, 1):
-        # Skip comments
+        # Skip full-line comments
         stripped = line.strip()
         if stripped.startswith("#") or stripped.startswith("//"):
             continue
 
+        # Strip inline comments (e.g. TypeScript `// example: ...`) so
+        # literals inside comments don't trigger secret patterns.
+        scan_line = _strip_inline_comment(line, ext)
+
         for pattern in SECRET_PATTERNS:
-            match = pattern.regex.search(line)
+            match = pattern.regex.search(scan_line)
             if match:
                 matched_value = match.group(0)
                 # Skip regex pattern definitions (contain regex metacharacters

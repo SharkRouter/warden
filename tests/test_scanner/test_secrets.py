@@ -44,3 +44,47 @@ def test_masking_in_findings():
         # Full key must not appear
         assert "sk-abcdefghijklmnopqrstuvwxyz1234567890" not in f.message
         assert "..." in f.message
+
+
+def test_skips_inline_ts_comment_example():
+    """Regression: Portkey gateway TS type comment triggered CRITICAL FP.
+
+    `oraclePrivateKey?: string; // example: -----BEGIN RSA PRIVATE KEY-----...`
+    is a TypeScript field declaration with an inline comment illustrating the
+    expected shape — not a real secret. The inline `// ...` must be stripped
+    before regex scanning.
+    """
+    content = (
+        "interface Body {\n"
+        "  oraclePrivateKey?: string; "
+        "// example: -----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKCAQEA\n"
+        "}\n"
+    )
+    findings, _ = _scan_content("requestBody.ts", content)
+    assert not any("Private Key" in f.message for f in findings)
+
+
+def test_skips_inline_python_comment_example():
+    findings, _ = _scan_content(
+        "docs.py",
+        'example = "value"  # sample: sk-abcdefghijklmnopqrstuvwxyz1234567890\n',
+    )
+    assert not any("OpenAI" in f.message for f in findings)
+
+
+def test_still_detects_secret_before_inline_comment():
+    """Secrets BEFORE an inline comment must still be caught."""
+    findings, _ = _scan_content(
+        "app.ts",
+        'const key = "sk-abcdefghijklmnopqrstuvwxyz1234567890"; // rotate quarterly\n',
+    )
+    assert any("OpenAI" in f.message for f in findings)
+
+
+def test_database_url_not_mistaken_for_comment():
+    """`postgres://user:pw@host` has `//` but no preceding whitespace — must still match."""
+    findings, _ = _scan_content(
+        "app.ts",
+        'const dsn = "postgres://user:password@host:5432/db";\n',
+    )
+    assert any("Database" in f.message for f in findings)

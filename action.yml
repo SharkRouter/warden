@@ -1,8 +1,5 @@
 name: Warden AI Governance Scan
-description: >-
-  Scan your repository for AI agent governance posture. 12 scan layers, 17
-  scoring dimensions, zero network calls. Publishes findings to GitHub Code
-  Scanning via SARIF.
+description: 'Scan AI agent governance posture — 17 dimensions, SARIF for Code Scanning, zero network calls.'
 author: SharkRouter
 branding:
   icon: shield

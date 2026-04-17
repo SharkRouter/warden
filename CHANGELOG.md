@@ -104,7 +104,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ### Fixed
 - MemoryError crash on large repos.
-- Self-detection false positive (SharkRouter detected as competitor in own codebase).
+- Self-detection false positive (WhiteFin detected as competitor in own codebase).
 
 ## [1.1.0] — 2026-04-04
 
@@ -124,17 +124,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Versions use [Se
 
 ---
 
-[1.7.0]: https://github.com/SharkRouter/warden/releases/tag/v1.7.0
-[1.6.0]: https://github.com/SharkRouter/warden/releases/tag/v1.6.0
-[1.5.6]: https://github.com/SharkRouter/warden/releases/tag/v1.5.6
-[1.5.5]: https://github.com/SharkRouter/warden/releases/tag/v1.5.5
-[1.5.4]: https://github.com/SharkRouter/warden/releases/tag/v1.5.4
-[1.5.3]: https://github.com/SharkRouter/warden/releases/tag/v1.5.3
-[1.5.2]: https://github.com/SharkRouter/warden/releases/tag/v1.5.2
-[1.5.1]: https://github.com/SharkRouter/warden/releases/tag/v1.5.1
-[1.5.0]: https://github.com/SharkRouter/warden/releases/tag/v1.5.0
-[1.4.0]: https://github.com/SharkRouter/warden/releases/tag/v1.4.0
-[1.3.0]: https://github.com/SharkRouter/warden/releases/tag/v1.3.0
-[1.2.0]: https://github.com/SharkRouter/warden/releases/tag/v1.2.0
-[1.1.0]: https://github.com/SharkRouter/warden/releases/tag/v1.1.0
-[1.0.0]: https://github.com/SharkRouter/warden/releases/tag/v1.0.0
+[1.7.0]: https://github.com/whitefinsec/warden/releases/tag/v1.7.0
+[1.6.0]: https://github.com/whitefinsec/warden/releases/tag/v1.6.0
+[1.5.6]: https://github.com/whitefinsec/warden/releases/tag/v1.5.6
+[1.5.5]: https://github.com/whitefinsec/warden/releases/tag/v1.5.5
+[1.5.4]: https://github.com/whitefinsec/warden/releases/tag/v1.5.4
+[1.5.3]: https://github.com/whitefinsec/warden/releases/tag/v1.5.3
+[1.5.2]: https://github.com/whitefinsec/warden/releases/tag/v1.5.2
+[1.5.1]: https://github.com/whitefinsec/warden/releases/tag/v1.5.1
+[1.5.0]: https://github.com/whitefinsec/warden/releases/tag/v1.5.0
+[1.4.0]: https://github.com/whitefinsec/warden/releases/tag/v1.4.0
+[1.3.0]: https://github.com/whitefinsec/warden/releases/tag/v1.3.0
+[1.2.0]: https://github.com/whitefinsec/warden/releases/tag/v1.2.0
+[1.1.0]: https://github.com/whitefinsec/warden/releases/tag/v1.1.0
+[1.0.0]: https://github.com/whitefinsec/warden/releases/tag/v1.0.0

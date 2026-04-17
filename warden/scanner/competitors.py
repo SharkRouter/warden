@@ -35,13 +35,17 @@ class CompetitorProfile:
 
 COMPETITORS: dict[str, CompetitorProfile] = {
     "sharkrouter": CompetitorProfile(
-        id="sharkrouter", display_name="SharkRouter", category="TOOL_CALL_GATEWAY",
-        env_vars=["SHARK_API_KEY", "SHARKROUTER_URL", "SHARK_ADMIN_KEY"],
-        packages=["sharkrouter-sdk"],
-        processes=["sharkrouter-server", "shark-proxy"],
-        docker_images=["sharkrouter/gateway"],
-        config_files=["sharkrouter.yaml", ".sharkrc"],
+        id="sharkrouter", display_name="WhiteFin", category="TOOL_CALL_GATEWAY",
+        env_vars=[
+            "WHITEFIN_API_KEY", "WHITEFIN_URL",
+            "SHARK_API_KEY", "SHARKROUTER_URL", "SHARK_ADMIN_KEY",
+        ],
+        packages=["whitefin", "sharkrouter", "sharkrouter-sdk"],
+        processes=["whitefin-server", "sharkrouter-server", "shark-proxy"],
+        docker_images=["whitefin/gateway", "sharkrouter/gateway"],
+        config_files=["whitefin.yaml", ".whitefinrc", "sharkrouter.yaml", ".sharkrc"],
         code_patterns=[
+            r"base_url.*whitefin", r"whitefin\.ai", r"WHITEFIN_API_KEY",
             r"base_url.*sharkrouter", r"shark.*proxy", r"sharkrouter\.ai",
             r"SHARK_API_KEY", r"shark.?router",
         ],

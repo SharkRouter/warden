@@ -6,7 +6,7 @@
 
 Open-source, local-only CLI scanner that evaluates AI agent governance posture across **12 scan layers** and **17 dimensions**. Scans code patterns, MCP configs, infrastructure, secrets, agent architecture, dependencies, audit compliance, CI/CD pipelines, IaC security, framework-specific governance, multi-language code, and cloud AI services. **No data leaves the machine.**
 
-**Website:** [sharkrouter.ai](https://sharkrouter.ai) · **PyPI:** [warden-ai](https://pypi.org/project/warden-ai/) · **GitHub Action:** [Marketplace listing](https://github.com/marketplace/actions/warden-ai-governance-scan)
+**Website:** [whitefin.ai](https://whitefin.ai) · **PyPI:** [warden-ai](https://pypi.org/project/warden-ai/) · **GitHub Action:** [Marketplace listing](https://github.com/marketplace/actions/warden-ai-governance-scan)
 
 > **For security teams / CISOs:** zero local install required. Scan any GitHub repo by adding the [Warden GitHub Action](#tier-1--zero-install-github-action) to its workflows — runs on GitHub's infrastructure, posts findings to your Code Scanning tab.
 
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SharkRouter/warden@v1
+      - uses: whitefinsec/warden@v1
         with:
           path: .
           # Optional: fail the build on poor posture
@@ -207,7 +207,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SharkRouter/warden@v1
+      - uses: whitefinsec/warden@v1
         with:
           path: .
           # Optional gates:
@@ -300,7 +300,7 @@ The HTML report is fully self-contained (no CDN, no external fonts, no network r
 ## Architecture Constraints
 
 1. **Zero network access** — Scanners never import httpx/requests/urllib. CI-enforced.
-2. **Zero SharkRouter imports** — Standalone package with no internal dependencies. CI-enforced.
+2. **Zero WhiteFin imports** — Standalone package with no internal dependencies. CI-enforced.
 3. **Secrets never stored** — Only file, line, pattern name, and masked preview (first 3 + last 4 chars).
 4. **HTML report self-contained** — No CDN, no Google Fonts. Works in air-gapped environments.
 5. **2 runtime dependencies** — click + rich. Nothing else.

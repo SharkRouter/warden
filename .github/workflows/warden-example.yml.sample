@@ -22,7 +22,7 @@ jobs:
 
       - name: Warden governance scan
         id: warden
-        uses: SharkRouter/warden@v1
+        uses: whitefinsec/warden@v1
         with:
           path: .
           format: all

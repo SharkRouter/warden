@@ -81,8 +81,8 @@ def test_apply_scores_mutates_result():
 
 
 def test_sharkrouter_score_91():
-    """SharkRouter's own score per the spec should be ~91/100."""
-    # From market scores table: SharkRouter percentages
+    """WhiteFin's own score per the spec should be ~91/100 (test name kept for stability)."""
+    # From market scores table: WhiteFin (formerly SharkRouter) percentages
     pcts = {
         "D1": 100, "D2": 100, "D3": 100, "D4": 90, "D5": 100, "D6": 100,
         "D7": 100, "D8": 100, "D9": 100,

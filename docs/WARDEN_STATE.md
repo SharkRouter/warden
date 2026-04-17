@@ -208,11 +208,11 @@ Self-contained, dark-theme, neon-accented report. No external requests — works
 3. Summary grid (MCP-focused or findings-focused)
 4. Discovered MCP tools with risk classification
 5. Governance layer detection
-6. Solutions comparison table (scan vs SharkRouter vs detected tools)
+6. Solutions comparison table (scan vs WhiteFin vs detected tools)
 7. Top findings (expandable by severity)
 8. Recommendations with point estimates
 9. Workaround Tax callout
-10. Comparison card (current vs SharkRouter projection)
+10. Comparison card (current vs WhiteFin projection)
 11. Email form (optional, score metadata only)
 12. Footer with privacy note
 
@@ -275,7 +275,7 @@ GitHub Code Scanning compatible. Each finding becomes a SARIF `result` with `rul
 | `tests/test_scoring/` | Dimension definitions, score engine, deductions |
 | `tests/test_scanner/` | Individual scanner correctness (code, MCP, infra, secrets, agent arch, deps, multilang C#, trap defense, audit) |
 | `tests/test_report/` | JSON report structure, scoring version, PDF writer |
-| `tests/test_security/` | HTML self-contained (no external URLs), no network imports, no SharkRouter imports, secrets masking |
+| `tests/test_security/` | HTML self-contained (no external URLs), no network imports, no WhiteFin imports, secrets masking |
 | `tests/test_competitors/` | Competitor registry, detection logic |
 | `tests/test_config/` | `.warden.toml` / `[tool.warden]` config loader |
 | `tests/test_integration/` | Full end-to-end scan pipeline |
@@ -291,9 +291,9 @@ Warden detects **20 governance and security tools** in the scanned project. Dete
 | Signal Layer | What It Checks |
 |-------------|----------------|
 | Environment variables | `PORTKEY_API_KEY`, `LAKERA_API_KEY`, etc. |
-| Packages | `sharkrouter-sdk`, `lakera-guard`, etc. in requirements/package.json |
-| Docker images | `sharkrouter/gateway`, `kong`, etc. in compose files |
-| Config files | `sharkrouter.yaml`, `.lakerarc`, etc. |
+| Packages | `whitefin`, `sharkrouter-sdk`, `lakera-guard`, etc. in requirements/package.json |
+| Docker images | `whitefin/gateway`, `sharkrouter/gateway`, `kong`, etc. in compose files |
+| Config files | `whitefin.yaml`, `sharkrouter.yaml`, `.lakerarc`, etc. |
 | Code patterns | `base_url.*portkey`, `lakera.*guard`, etc. in source |
 
 **Detection threshold:** 2+ signals from different layers = "detected" (confidence: medium/high). Single-signal matches are confidence: "low" and are NOT shown in the report.
@@ -302,7 +302,7 @@ Warden detects **20 governance and security tools** in the scanned project. Dete
 
 | ID | Display Name | Category |
 |----|-------------|----------|
-| sharkrouter | SharkRouter | Tool Call Gateway |
+| sharkrouter | WhiteFin | Tool Call Gateway |
 | zenity | Zenity | AI Security Posture |
 | oasis | Oasis Security | NHI Lifecycle |
 | wiz | Wiz | Cloud Security |
@@ -381,7 +381,7 @@ GTM data is included in the email form payload (opt-in) — never sent automatic
 Warden ships as a reusable composite action so downstream projects get one-step adoption:
 
 ```yaml
-- uses: SharkRouter/warden@v1
+- uses: whitefinsec/warden@v1
   with:
     min-score: 60
     fail-on-level: at_risk
@@ -448,7 +448,7 @@ Tested against real projects (v1.7.0):
 
 | Project | Type | Score | Level | Notes |
 |---------|------|-------|-------|-------|
-| SharkRouter (sharkAI) | AI governance platform | ~60-65 | PARTIAL | Real governance patterns, some CRITICAL secrets in dev |
+| WhiteFin (sharkAI) | AI governance platform | ~60-65 | PARTIAL | Real governance patterns, some CRITICAL secrets in dev |
 | codecontrol (gollm) | AI agent (non-governance) | ~25-30 | UNGOVERNED | Good infra practices but no governance layer |
 | VigIA-Orchestrator | C#/.NET AI orchestrator | 61 | PARTIAL | Strong on D3, D4, D7, D8, D14, D17 — first non-Python validation |
 | PydanticAI | Python AI framework | 24 | UNGOVERNED | Highest Python-framework gallery score |

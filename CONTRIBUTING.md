@@ -4,8 +4,8 @@ Warden is an open-source AI agent governance scanner. Contributions are welcome 
 
 ## Reporting Issues
 
-- **Bug reports:** Open an issue at [github.com/SharkRouter/warden/issues](https://github.com/SharkRouter/warden/issues) with steps to reproduce, expected vs actual behavior, and your Python version / OS.
-- **Security vulnerabilities:** Email [security@sharkrouter.ai](mailto:security@sharkrouter.ai) — do not open a public issue for security bugs.
+- **Bug reports:** Open an issue at [github.com/whitefinsec/warden/issues](https://github.com/whitefinsec/warden/issues) with steps to reproduce, expected vs actual behavior, and your Python version / OS.
+- **Security vulnerabilities:** Email [security@whitefin.ai](mailto:security@whitefin.ai) — do not open a public issue for security bugs.
 - **Feature requests:** Open an issue with the `enhancement` label. Describe the use case, not just the feature.
 - **Scoring methodology feedback:** We welcome challenges to dimension weights, pattern classifications, and scoring logic. Open an issue or a PR — the scoring model is transparent and versioned.
 
@@ -20,7 +20,7 @@ Warden is an open-source AI agent governance scanner. Contributions are welcome 
 
 ```bash
 # Clone
-git clone https://github.com/SharkRouter/warden.git
+git clone https://github.com/whitefinsec/warden.git
 cd warden
 
 # With uv (recommended)
@@ -72,7 +72,7 @@ Ruff is configured in `pyproject.toml`: Python 3.10 target, 120-char line length
 These constraints are enforced by CI tests. PRs that violate them will not pass:
 
 1. **Zero network access** — scanners never import `httpx`, `requests`, or `urllib`. Warden is local-only forever.
-2. **Zero SharkRouter imports** — Warden is a standalone package with no internal dependencies.
+2. **Zero WhiteFin imports** — Warden is a standalone package with no internal dependencies.
 3. **Secrets never stored** — only file path, line number, pattern name, and masked preview (first 3 + last 4 chars).
 4. **HTML report self-contained** — no CDN links, no Google Fonts, no external requests. Must work air-gapped.
 5. **2 runtime dependencies** — `click` and `rich`. Everything else is optional extras or dev-only.

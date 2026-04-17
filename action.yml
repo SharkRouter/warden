@@ -1,6 +1,6 @@
 name: Warden AI Governance Scan
 description: 'Scan AI agent governance posture — 17 dimensions, SARIF for Code Scanning, zero network calls.'
-author: SharkRouter
+author: WhiteFin
 branding:
   icon: shield
   color: purple

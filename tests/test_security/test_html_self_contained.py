@@ -30,8 +30,11 @@ def test_html_no_external_urls():
     # Filter out text links and the email form action (not resource loads)
     resource_urls = [
         u for u in urls
-        if "github.com/SharkRouter" not in u
+        if "github.com/whitefinsec" not in u
+        and "github.com/SharkRouter" not in u
         and "github.com/sharkrouter" not in u
+        and "whitefin.ai" not in u
+        and "api.whitefin.ai/v1/warden" not in u
         and "sharkrouter.ai" not in u
         and "api.sharkrouter.ai/v1/warden" not in u
     ]

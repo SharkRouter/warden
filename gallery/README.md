@@ -76,7 +76,7 @@ Push the contents of `gallery/out/` to a `gh-pages` branch or `docs/`
 directory of a separate repo, then enable Pages in Settings. The site
 is entirely static so there's no build step on GitHub's end.
 
-### 2. `warden.sharkrouter.ai/gallery/`
+### 2. `warden.whitefin.ai/gallery/`
 
 Upload `gallery/out/` to the Caddy host at `/opt/sharkagent/gallery/`
 (via scp, following the landing-v2 deploy pattern documented in the

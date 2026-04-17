@@ -9,9 +9,11 @@ from warden.scanner.competitors import COMPETITORS, detect_competitors
 
 
 def test_registry_has_20_entries():
-    """19 competitors + SharkRouter (self-detection) = 20 total."""
+    """19 competitors + WhiteFin (self-detection, id=sharkrouter) = 20 total."""
     assert len(COMPETITORS) == 20
+    # id stays "sharkrouter" for registry stability; display_name is "WhiteFin".
     assert "sharkrouter" in COMPETITORS
+    assert COMPETITORS["sharkrouter"].display_name == "WhiteFin"
     # Spot-check the most recent additions so regressions surface immediately.
     assert "protect_ai" in COMPETITORS
     assert "hiddenlayer" in COMPETITORS
@@ -82,10 +84,21 @@ def test_hiddenlayer_detection():
 
 
 def test_sharkrouter_detection():
-    """SharkRouter should be detectable as existing_customer."""
+    """Legacy SharkRouter artifacts should still be detectable as existing_customer."""
     with tempfile.TemporaryDirectory() as tmpdir:
         (Path(tmpdir) / "config.yaml").write_text("base_url: https://sharkrouter.example.com\n")
         with patch.dict(os.environ, {"SHARK_API_KEY": "test-key"}):
             matches, _ = detect_competitors(Path(tmpdir))
             shark = [m for m in matches if m.id == "sharkrouter"]
             assert len(shark) > 0
+
+
+def test_whitefin_detection():
+    """New WhiteFin artifacts should be detectable as existing_customer (registry id stays 'sharkrouter')."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        (Path(tmpdir) / "whitefin.yaml").write_text("base_url: https://whitefin.ai\n")
+        with patch.dict(os.environ, {"WHITEFIN_API_KEY": "test-key"}):
+            matches, _ = detect_competitors(Path(tmpdir))
+            hits = [m for m in matches if m.id == "sharkrouter"]
+            assert len(hits) > 0
+            assert hits[0].display_name == "WhiteFin"

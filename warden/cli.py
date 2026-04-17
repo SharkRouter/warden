@@ -16,7 +16,7 @@ BANNER = r"""
   \ \ /\ / / _` | '__/ _` |/ _ \ '_ \
    \ V  V / (_| | | | (_| |  __/ | | |
     \_/\_/ \__,_|_|  \__,_|\___|_| |_|
-         by SharkRouter
+         by WhiteFin
 """
 
 console = Console()
@@ -558,7 +558,7 @@ def leaderboard() -> None:
 
     # Market scores from spec Section 6
     market_data = [
-        ("SharkRouter",      91, "Full gateway"),
+        ("WhiteFin",         91, "Full gateway"),
         ("Zenity",           55, "Agent gov."),
         ("Oasis Security",   42, "NHI access"),
         ("Wiz",              41, "Cloud AI-SPM"),
@@ -588,11 +588,11 @@ def leaderboard() -> None:
 
     click.echo()
     click.echo("  Market whitespace (avg < 20% across all vendors):")
-    click.echo("    D17 Adversarial Resilience  -- avg 5%,  best: SharkRouter 90%")
-    click.echo("    D15 Post-Exec Verification  -- avg 3%,  best: SharkRouter 100%")
-    click.echo("    D16 Data Flow Governance    -- avg 6%,  best: SharkRouter 90%")
-    click.echo("    D8  Agent Identity          -- avg 10%, best: SharkRouter 100%")
-    click.echo("    D7  Human-in-the-Loop       -- avg 12%, best: SharkRouter 100%")
+    click.echo("    D17 Adversarial Resilience  -- avg 5%,  best: WhiteFin 90%")
+    click.echo("    D15 Post-Exec Verification  -- avg 3%,  best: WhiteFin 100%")
+    click.echo("    D16 Data Flow Governance    -- avg 6%,  best: WhiteFin 90%")
+    click.echo("    D8  Agent Identity          -- avg 10%, best: WhiteFin 100%")
+    click.echo("    D7  Human-in-the-Loop       -- avg 12%, best: WhiteFin 100%")
     click.echo()
     click.echo("  Methodology: warden methodology")
     click.echo("  Full report: warden scan <path>")

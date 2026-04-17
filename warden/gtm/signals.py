@@ -52,13 +52,13 @@ GTM_SIGNALS: dict[str, GTMAction] = {
     ),
     "warm_security_vendor": GTMAction(
         action="complementary",
-        message="Your security stack sees threats. SharkRouter stops agents from BEING the threat.",
+        message="Your security stack sees threats. WhiteFin stops agents from BEING the threat.",
         email_template="complementary_layer",
         priority="medium",
     ),
     "warm_scanner_user": GTMAction(
         action="runtime_upgrade",
-        message="You scan for vulnerabilities. SharkRouter enforces governance at runtime.",
+        message="You scan for vulnerabilities. WhiteFin enforces governance at runtime.",
         email_template="scanner_to_runtime",
         priority="medium",
     ),

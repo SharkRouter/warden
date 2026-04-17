@@ -29,7 +29,7 @@ LEVEL_COLORS = {
     ScoreLevel.UNGOVERNED: "#ff3b3b",
 }
 
-# SharkRouter estimated score (from competitors.py registry)
+# WhiteFin (formerly SharkRouter) estimated score (from competitors.py registry)
 _SHARKROUTER_SCORE = 91
 
 # --- Dimension gap recommendation templates ---
@@ -339,7 +339,7 @@ function submitEmail(btn){
   data.email=email;
   var company=document.getElementById('warden-company');
   if(company&&company.value)data.company=company.value;
-  fetch('https://api.sharkrouter.ai/v1/warden/submit',{
+  fetch('https://api.whitefin.ai/v1/warden/submit',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(data)
   }).then(function(r){
@@ -466,7 +466,7 @@ def _hero(result: ScanResult) -> str:
                 detail_html = f'<div class="dim-row"><div class="dim-label">{dim.id} {_esc(dim.name)}</div><div class="bar-track"><div class="bar-fill" style="width:{pct}%;background:{bar_color}"></div></div><div class="dim-val"{val_style}>{raw} / {mx}</div></div>'
             dim_html.append(detail_html)
 
-    caveat = '<div class="caveat">Score reflects only what Warden can observe locally. Undetected controls are scored as 0, not assumed good. Dimensions are weighted by governance impact. Methodology: <a href="https://github.com/sharkrouter/warden/blob/main/SCORING.md" style="color:var(--info);text-decoration:none">SCORING.md</a></div>'
+    caveat = '<div class="caveat">Score reflects only what Warden can observe locally. Undetected controls are scored as 0, not assumed good. Dimensions are weighted by governance impact. Methodology: <a href="https://github.com/whitefinsec/warden/blob/main/SCORING.md" style="color:var(--info);text-decoration:none">SCORING.md</a></div>'
 
     return f"""
   <div class="sec">
@@ -682,9 +682,9 @@ def _detected_solutions_table(result: ScanResult) -> str:
         max_pts_cells += f'<th style="text-align:center;padding:3px 4px;font-size:10px;color:var(--muted)">{dim.max_score}</th>'
     max_pts_cells += f'<th style="text-align:center;padding:3px 4px;font-size:10px;color:var(--muted);border-left:1px solid var(--border2)">{TOTAL_RAW_MAX}</th><th></th>'
 
-    # --- SharkRouter row (always first, green highlight) ---
+    # --- WhiteFin row (always first, green highlight) ---
     shark_raw_total = round(_SHARKROUTER_SCORE / 100 * TOTAL_RAW_MAX)
-    shark_cells = '<td style="padding:7px 10px;color:var(--low);font-weight:700">SharkRouter</td>'
+    shark_cells = '<td style="padding:7px 10px;color:var(--low);font-weight:700">WhiteFin</td>'
     for dim in ALL_DIMENSIONS:
         est = round(dim.max_score * (_SHARKROUTER_SCORE / 100))
         est = min(est, dim.max_score)
@@ -726,7 +726,7 @@ def _detected_solutions_table(result: ScanResult) -> str:
     dim_count = len(ALL_DIMENSIONS)
     tool_count = 2 + len(detected)  # shark + scan + detected
 
-    disclaimer = '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:12px 24px;font-family:var(--mono)">SharkRouter per-dimension scores are proportional estimates from total score. Detected tool scores are totals only (per-dimension breakdown not available). Methodology: <a href="https://github.com/sharkrouter/warden/blob/main/SCORING.md" style="color:var(--info);text-decoration:none">SCORING.md</a></div>'
+    disclaimer = '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:12px 24px;font-family:var(--mono)">WhiteFin per-dimension scores are proportional estimates from total score. Detected tool scores are totals only (per-dimension breakdown not available). Methodology: <a href="https://github.com/whitefinsec/warden/blob/main/SCORING.md" style="color:var(--info);text-decoration:none">SCORING.md</a></div>'
 
     return f"""
   <div class="sec">
@@ -909,7 +909,7 @@ def _comparison_card(result: ScanResult) -> str:
     shark_score = _SHARKROUTER_SCORE
     delta = shark_score - score
 
-    # Pick dimensions with biggest gap (SharkRouter estimate - current score)
+    # Pick dimensions with biggest gap (WhiteFin estimate - current score)
     gap_dims = []
     for dim in ALL_DIMENSIONS:
         ds = result.dimension_scores.get(dim.id)
@@ -959,7 +959,7 @@ def _comparison_card(result: ScanResult) -> str:
       {''.join(cur_rows)}
     </div>
     <div class="cmp-col cmp-sr">
-      <div class="cmp-lbl s">+ SharkRouter (full deployment)</div>
+      <div class="cmp-lbl s">+ WhiteFin (full deployment)</div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
         <span class="cmp-score s">{shark_score}</span><span class="cmp-denom">/ 100</span>
       </div>

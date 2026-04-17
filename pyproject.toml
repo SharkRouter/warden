@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "SharkRouter", email = "security@sharkrouter.ai"},
+    {name = "WhiteFin", email = "security@whitefin.ai"},
 ]
 keywords = ["ai", "governance", "security", "agent", "scanner", "mcp", "llm"]
 classifiers = [
@@ -46,11 +46,11 @@ pdf = [
 warden = "warden.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/SharkRouter/warden"
-Documentation = "https://github.com/SharkRouter/warden#readme"
-Repository = "https://github.com/SharkRouter/warden"
-Issues = "https://github.com/SharkRouter/warden/issues"
-Changelog = "https://github.com/SharkRouter/warden/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/whitefinsec/warden"
+Documentation = "https://github.com/whitefinsec/warden#readme"
+Repository = "https://github.com/whitefinsec/warden"
+Issues = "https://github.com/whitefinsec/warden/issues"
+Changelog = "https://github.com/whitefinsec/warden/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["warden"]
